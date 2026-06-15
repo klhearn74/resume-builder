@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeAI — Real ATS Scoring</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f0f0f;
+  --surface:#1a1a1a;
+  --surface2:#222;
+  --border:#2e2e2e;
+  --border2:#3a3a3a;
+  --text:#f0f0f0;
+  --text2:#999;
+  --text3:#666;
+  --accent:#6ee7b7;
+  --accent-dim:#1a3a30;
+  --red:#f87171;
+  --red-dim:#3a1a1a;
+  --yellow:#fbbf24;
+  --yellow-dim:#3a2a00;
+  --radius:10px;
+  --radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+a{color:var(--accent)}
+
+/* Layout */
+.app{max-width:720px;margin:0 auto;padding:2rem 1.25rem 4rem}
+
+/* Header */
+.header{text-align:center;margin-bottom:2.5rem;padding-top:1rem}
+.header .logo{font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.header h1{font-size:28px;font-weight:700;margin-bottom:8px;letter-spacing:-0.5px}
+.header p{font-size:14px;color:var(--text2);max-width:400px;margin:0 auto}
+.trust-badges{display:flex;gap:16px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.badge{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px}
+.badge span{color:var(--accent)}
+
+/* Steps indicator */
+.steps-nav{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:2rem}
+.step-dot{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:default}
+.step-dot .num{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text3);transition:all 0.3s}
+.step-dot .lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;transition:color 0.3s}
+.step-dot.active .num{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.step-dot.active .lbl{color:var(--accent)}
+.step-dot.done .num{border-color:var(--text3);background:var(--text3);color:var(--bg)}
+.step-dot.done .lbl{color:var(--text3)}
+.step-line{width:40px;height:1.5px;background:var(--border2);margin:0 4px;margin-bottom:14px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem;margin-bottom:1rem}
+.card-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.card-sub{font-size:13px;color:var(--text2);margin-bottom:1.25rem}
+
+/* Form */
+label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;margin-top:16px;text-transform:uppercase;letter-spacing:0.06em}
+input,textarea{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface2);color:var(--text);resize:vertical;outline:none;transition:border-color 0.2s}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{min-height:100px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Upload zone */
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:1rem}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-dim)}
+.upload-zone .icon{font-size:28px;margin-bottom:8px}
+.upload-zone p{font-size:13px;color:var(--text2)}
+.upload-zone .hint{font-size:11px;color:var(--text3);margin-top:4px}
+.upload-success{border-color:var(--accent);background:var(--accent-dim)}
+
+/* Tabs for input method */
+.input-tabs{display:flex;gap:0;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1.5rem}
+.input-tab{flex:1;padding:9px;font-size:13px;cursor:pointer;border:none;background:var(--surface2);color:var(--text2);font-family:inherit;transition:all 0.2s}
+.input-tab.active{background:var(--accent);color:#000;font-weight:600}
+
+/* Buttons */
+.btn{padding:10px 22px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;transition:all 0.2s}
+.btn:hover{background:var(--border2)}
+.btn-primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.btn-primary:hover{opacity:0.88}
+.btn-row{display:flex;gap:10px;margin-top:1.5rem;justify-content:flex-end}
+.btn-full{width:100%;justify-content:center;text-align:center}
+
+/* Step panels */
+.step{display:none}.step.active{display:block}
+
+/* Score ring */
+.score-wrap{display:flex;flex-direction:column;align-items:center;margin:0.5rem 0 1.5rem}
+.score-verdict{font-size:13px;color:var(--text2);margin-top:6px;font-weight:500}
+
+/* Keywords */
+.kw-section{margin-bottom:1.25rem}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:8px}
+.kw-grid{display:flex;flex-wrap:wrap;gap:6px}
+.kw{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
+.kw.found{background:var(--accent-dim);color:var(--accent);border:1px solid #1d5c45}
+.kw.missing{background:var(--red-dim);color:var(--red);border:1px solid #5c1d1d}
+
+/* Score breakdown bars */
+.breakdown{margin-bottom:1.25rem}
+.breakdown-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.breakdown-label{font-size:12px;color:var(--text2);width:120px;flex-shrink:0}
+.breakdown-bar-bg{flex:1;height:6px;background:var(--border2);border-radius:3px;overflow:hidden}
+.breakdown-bar{height:100%;border-radius:3px;transition:width 1s ease;background:var(--accent)}
+.breakdown-val{font-size:12px;color:var(--text2);width:30px;text-align:right}
+
+/* Feedback */
+.feedback-box{background:var(--surface2);border-radius:var(--radius-sm);padding:1rem;font-size:13px;color:var(--text2);line-height:1.7;border-left:3px solid var(--accent)}
+
+/* Alerts */
+.alert{padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start}
+.alert-warn{background:var(--yellow-dim);color:var(--yellow);border:1px solid #5c3d00}
+.alert-success{background:var(--accent-dim);color:var(--accent);border:1px solid #1d5c45}
+.alert-info{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}
+
+/* Spinner */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:2.5rem 0}
+.loading-wrap .loading-text{font-size:14px;color:var(--text2)}
+.loading-steps{display:flex;flex-direction:column;gap:6px;margin-top:8px;width:100%;max-width:280px}
+.loading-step{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:8px;transition:color 0.3s}
+.loading-step.active{color:var(--accent)}
+.loading-step .ls-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background 0.3s}
+.loading-step.active .ls-dot{background:var(--accent)}
+.loading-step.done .ls-dot{background:var(--text3)}
+.loading-step.done{color:var(--text3)}
+
+/* Resume output */
+.resume-tabs{display:flex;gap:0;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;width:fit-content}
+.resume-tab{padding:8px 20px;font-size:13px;cursor:pointer;border:none;background:var(--surface2);color:var(--text2);font-family:inherit;transition:all 0.2s}
+.resume-tab.active{background:var(--text);color:var(--bg);font-weight:600}
+
+.resume-preview{font-size:13px;line-height:1.75;white-space:pre-wrap;border-radius:var(--radius-sm);padding:1.5rem;max-height:420px;overflow-y:auto;border:1px solid var(--border2)}
+.resume-preview.classic{background:#fff;color:#1a1a1a;font-family:'Georgia',serif}
+.resume-preview.modern{background:#f8faff;color:#1a1a1a;font-family:-apple-system,sans-serif;border-left:4px solid #3b5bdb}
+
+/* Error */
+.error-box{background:var(--red-dim);color:var(--red);border:1px solid #5c1d1d;border-radius:var(--radius-sm);padding:12px;font-size:13px}
+
+/* Honesty banner */
+.honesty-banner{background:var(--accent-dim);border:1px solid #1d5c45;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+
+/* Cover letter section */
+.coverletter-preview{font-size:13px;line-height:1.75;white-space:pre-wrap;background:#fff;color:#1a1a1a;border-radius:var(--radius-sm);padding:1.5rem;max-height:320px;overflow-y:auto;border:1px solid var(--border2);font-family:'Georgia',serif}
+
+@media(max-width:520px){
+  .row2{grid-template-columns:1fr}
+  .steps-nav{gap:0}
+  .step-line{width:20px}
+  .header h1{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">ResumeAI</div>
+    <h1>Land more interviews</h1>
+    <p>Real ATS scoring that shows you exactly why your resume gets rejected — and fixes it honestly.</p>
+    <div class="trust-badges">
+      <div class="badge"><span>✓</span> Real keyword analysis</div>
+      <div class="badge"><span>✓</span> Never fabricates experience</div>
+      <div class="badge"><span>✓</span> See results before paying</div>
+    </div>
+  </div>
+
+  <div class="steps-nav" id="steps-nav">
+    <div class="step-dot active" id="sdot-0"><div class="num">1</div><div class="lbl">Resume</div></div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="sdot-1"><div class="num">2</div><div class="lbl">Job</div></div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="sdot-2"><div class="num">3</div><div class="lbl">Score</div></div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="sdot-3"><div class="num">4</div><div class="lbl">Output</div></div>
+  </div>
+
+  <!-- STEP 0: Resume input -->
+  <div class="step active" id="step-0">
+    <div class="card">
+      <div class="card-title">Your resume</div>
+      <div class="card-sub">Upload a PDF or fill in manually — your choice.</div>
+
+      <div class="input-tabs">
+        <button class="input-tab active" onclick="switchInputTab('manual')">✏️ Fill in manually</button>
+        <button class="input-tab" onclick="switchInputTab('upload')">📄 Upload PDF</button>
+      </div>
+
+      <div id="manual-input">
+        <div class="row2">
+          <div><label>Full name</label><input id="name" placeholder="Jane Smith"></div>
+          <div><label>Email</label><input id="email" placeholder="jane@email.com"></div>
+        </div>
+        <div class="row2">
+          <div><label>Phone</label><input id="phone" placeholder="(555) 000-0000"></div>
+          <div><label>Location</label><input id="location" placeholder="City, Province"></div>
+        </div>
+        <label>Professional summary</label>
+        <textarea id="summary" placeholder="Brief overview of your experience and strengths..."></textarea>
+        <label>Work experience</label>
+        <textarea id="experience" style="min-height:150px" placeholder="Job Title — Company (Year–Year)&#10;• Key achievement or responsibility&#10;• Key achievement or responsibility&#10;&#10;Job Title — Company (Year–Year)&#10;• Key achievement or responsibility"></textarea>
+        <label>Education</label>
+        <textarea id="education" style="min-height:70px" placeholder="Degree — School, Year"></textarea>
+        <label>Skills</label>
+        <input id="skills" placeholder="e.g. Customer Service, Inventory Management, POS Systems, Team Leadership">
+      </div>
+
+      <div id="upload-input" style="display:none">
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('pdf-file').click()">
+          <div class="icon">📄</div>
+          <p>Click to upload your resume PDF</p>
+          <div class="hint">Your info will be extracted automatically</div>
+        </div>
+        <input type="file" id="pdf-file" accept=".pdf" style="display:none" onchange="handlePDFUpload(event)">
+        <div id="upload-status" style="display:none"></div>
+        <div id="extracted-preview" style="display:none">
+          <label>Extracted text (review & edit if needed)</label>
+          <textarea id="extracted-text" style="min-height:200px"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="goToStep1()">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Job description -->
+  <div class="step" id="step-1">
+    <div class="card">
+      <div class="card-title">Job description</div>
+      <div class="card-sub">Paste the full job posting you're applying to. The more detail the better.</div>
+      <textarea id="jd" style="min-height:240px" placeholder="Paste the complete job posting here...&#10;&#10;Include the requirements, responsibilities, and any qualifications listed."></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="goTo(0)">← Back</button>
+        <button class="btn btn-primary" onclick="runAnalysis()">Analyze & score ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: ATS Score -->
+  <div class="step" id="step-2">
+    <div class="card">
+      <div class="card-title">ATS analysis</div>
+      <div class="card-sub">Real keyword matching against this specific job.</div>
+
+      <div id="loading-state">
+        <div class="loading-wrap">
+          <div class="spinner"></div>
+          <div class="loading-text" id="loading-text">Analyzing your resume...</div>
+          <div class="loading-steps">
+            <div class="loading-step active" id="ls-0"><div class="ls-dot"></div>Extracting keywords from job posting</div>
+            <div class="loading-step" id="ls-1"><div class="ls-dot"></div>Matching against your experience</div>
+            <div class="loading-step" id="ls-2"><div class="ls-dot"></div>Calculating ATS compatibility score</div>
+            <div class="loading-step" id="ls-3"><div class="ls-dot"></div>Generating improvement feedback</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="error-state" style="display:none"></div>
+
+      <div id="results-state" style="display:none">
+        <div class="score-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="58" fill="none" stroke="var(--border2)" stroke-width="10"/>
+            <circle id="score-arc" cx="70" cy="70" r="58" fill="none" stroke="var(--accent)" stroke-width="10"
+              stroke-dasharray="364" stroke-dashoffset="364" stroke-linecap="round"
+              transform="rotate(-90 70 70)" style="transition:stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)"/>
+            <text x="70" y="64" text-anchor="middle" font-size="30" font-weight="700" fill="var(--text)" id="score-num">0</text>
+            <text x="70" y="82" text-anchor="middle" font-size="11" fill="var(--text3)" font-weight="500">ATS SCORE</text>
+          </svg>
+          <div class="score-verdict" id="score-verdict"></div>
+        </div>
+
+        <div class="breakdown" id="breakdown-section">
+          <div class="section-label">Score breakdown</div>
+          <div class="breakdown-row">
+            <div class="breakdown-label">Keyword match</div>
+            <div class="breakdown-bar-bg"><div class="breakdown-bar" id="bar-kw" style="width:0%"></div></div>
+            <div class="breakdown-val" id="val-kw">0%</div>
+          </div>
+          <div class="breakdown-row">
+            <div class="breakdown-label">Skills alignment</div>
+            <div class="breakdown-bar-bg"><div class="breakdown-bar" id="bar-sk" style="width:0%"></div></div>
+            <div class="breakdown-val" id="val-sk">0%</div>
+          </div>
+          <div class="breakdown-row">
+            <div class="breakdown-label">Experience relevance</div>
+            <div class="breakdown-bar-bg"><div class="breakdown-bar" id="bar-exp" style="width:0%"></div></div>
+            <div class="breakdown-val" id="val-exp">0%</div>
+          </div>
+        </div>
+
+        <div class="kw-section">
+          <div class="section-label">Keywords found in your resume</div>
+          <div class="kw-grid" id="kw-found"></div>
+        </div>
+        <div class="kw-section">
+          <div class="section-label" style="color:var(--red)">Missing keywords</div>
+          <div class="kw-grid" id="kw-missing"></div>
+        </div>
+
+        <div class="section-label" style="margin-bottom:8px">Honest feedback</div>
+        <div class="feedback-box" id="feedback-text"></div>
+
+        <div id="low-score-alert" class="alert alert-warn" style="display:none;margin-top:1rem">
+          <span>⚠️</span>
+          <span>Score below 72% — the next step will optimize your resume to improve this. Your real experience will be reframed, never fabricated.</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn" onclick="goTo(1)">← Back</button>
+          <button class="btn btn-primary" id="next-btn" onclick="goTo(3)">Get optimized resume →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Output -->
+  <div class="step" id="step-3">
+    <div class="card">
+      <div class="card-title">Your optimized resume</div>
+      <div class="card-sub">Rewritten to match this role — using only your real experience.</div>
+
+      <div id="rewrite-loading">
+        <div class="loading-wrap">
+          <div class="spinner"></div>
+          <div class="loading-text" id="rewrite-text">Optimizing your resume...</div>
+          <div class="loading-steps">
+            <div class="loading-step active" id="rl-0"><div class="ls-dot"></div>Analyzing your real experience</div>
+            <div class="loading-step" id="rl-1"><div class="ls-dot"></div>Reframing language to match job</div>
+            <div class="loading-step" id="rl-2"><div class="ls-dot"></div>Incorporating missing keywords naturally</div>
+            <div class="loading-step" id="rl-3"><div class="ls-dot"></div>Formatting final resume</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="rewrite-done" style="display:none">
+        <div class="honesty-banner">
+          <span>✓</span>
+          <span>This resume uses only your real experience — reframed with stronger language to match the job description.</span>
+        </div>
+
+        <div id="score-improved" class="alert alert-success" style="display:none;margin-bottom:1rem">
+          <span>↑</span><span id="score-improved-text"></span>
+        </div>
+
+        <div class="resume-tabs">
+          <button class="resume-tab active" onclick="switchTemplate('classic')">Classic</button>
+          <button class="resume-tab" onclick="switchTemplate('modern')">Modern</button>
+        </div>
+
+        <div class="resume-preview classic" id="resume-output"></div>
+
+        <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem">
+          <div class="card-title" style="margin-bottom:4px">Cover letter</div>
+          <div class="card-sub" style="margin-bottom:1rem">Tailored to this specific role.</div>
+          <div id="cover-loading" class="loading-wrap" style="padding:1rem 0">
+            <div class="spinner"></div>
+            <div class="loading-text">Generating cover letter...</div>
+          </div>
+          <div id="cover-done" style="display:none">
+            <div class="coverletter-preview" id="cover-output"></div>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:1.5rem">
+          <button class="btn" onclick="goTo(2)">← Back</button>
+          <button class="btn" onclick="downloadCoverLetter()">Download Cover Letter</button>
+          <button class="btn btn-primary" onclick="downloadPDF()">Download Resume PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PROXY = "https://klhearn74--d5ae17d664fe11f1a8a21607ee4eb77e.web.val.run";
+let currentStep=0, analysisResult=null, finalResume="", coverLetter="", currentTemplate="classic", atsScore=0, inputMode="manual", extractedText="";
+
+function switchInputTab(mode) {
+  inputMode = mode;
+  document.querySelectorAll('.input-tab').forEach((t,i)=>t.classList.toggle('active',['manual','upload'][i]===mode));
+  document.getElementById('manual-input').style.display = mode==='manual'?'block':'none';
+  document.getElementById('upload-input').style.display = mode==='upload'?'block':'none';
+}
+
+async function handlePDFUpload(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const zone = document.getElementById('upload-zone');
+  const status = document.getElementById('upload-status');
+  zone.className = 'upload-zone upload-success';
+  zone.innerHTML = `<div class="icon">⏳</div><p>Extracting text from PDF...</p>`;
+  status.style.display = 'block';
+  try {
+    const base64 = await fileToBase64(file);
+    const text = await callClaude(
+      "Extract all text from this resume PDF. Return the raw text content only, preserving structure. No commentary.",
+      null, 1500, base64
+    );
+    extractedText = text;
+    zone.innerHTML = `<div class="icon">✅</div><p>${file.name}</p><div class="hint">Text extracted successfully</div>`;
+    document.getElementById('extracted-preview').style.display='block';
+    document.getElementById('extracted-text').value = text;
+  } catch(e) {
+    zone.innerHTML = `<div class="icon">❌</div><p>Could not extract PDF. Please fill in manually.</p>`;
+    switchInputTab('manual');
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result.split(',')[1]);
+    r.onerror = ()=>rej(new Error('Read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function getResumeText() {
+  if(inputMode==='upload') {
+    return document.getElementById('extracted-text').value.trim() || extractedText;
+  }
+  return `${v('name')}
+${v('email')} | ${v('phone')} | ${v('location')}
+
+SUMMARY
+${v('summary')}
+
+EXPERIENCE
+${v('experience')}
+
+EDUCATION
+${v('education')}
+
+SKILLS
+${v('skills')}`.trim();
+}
+
+function getName() {
+  if(inputMode==='upload') {
+    const t = getResumeText();
+    return t.split('\n')[0].trim() || 'Candidate';
+  }
+  return v('name') || 'Candidate';
+}
+
+function v(id){return (document.getElementById(id)||{}).value?.trim()||''}
+
+function goTo(n) {
+  document.getElementById('step-'+currentStep).classList.remove('active');
+  document.getElementById('sdot-'+currentStep).classList.remove('active','done');
+  document.getElementById('sdot-'+currentStep).classList.add('done');
+  currentStep=n;
+  document.getElementById('step-'+n).classList.add('active');
+  document.getElementById('sdot-'+n).classList.remove('done');
+  document.getElementById('sdot-'+n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===3 && !finalResume) startRewrite();
+}
+
+function goToStep1() {
+  const resume = getResumeText();
+  if(!resume || resume.length < 50) {
+    alert('Please fill in your resume details or upload a PDF first.');
+    return;
+  }
+  goTo(1);
+}
+
+async function callClaude(prompt, system, maxTokens=800, pdfBase64=null) {
+  let content;
+  if(pdfBase64) {
+    content = [
+      {type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfBase64}},
+      {type:'text',text:prompt}
+    ];
+  } else {
+    content = prompt;
+  }
+  const body = {
+    model: 'claude-haiku-4-5',
+    max_tokens: maxTokens,
+    messages: [{role:'user', content}]
+  };
+  if(system) body.system = system;
+  const res = await fetch(PROXY, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+  return data.content.map(b=>b.text||'').join('');
+}
+
+function animateLoadingSteps(prefix, steps, interval=1400) {
+  let i=0;
+  const tick = setInterval(()=>{
+    if(i>0) {
+      document.getElementById(prefix+(i-1))?.classList.remove('active');
+      document.getElementById(prefix+(i-1))?.classList.add('done');
+    }
+    if(i<steps) {
+      document.getElementById(prefix+i)?.classList.add('active');
+      i++;
+    } else {
+      clearInterval(tick);
+    }
+  }, interval);
+  return tick;
+}
+
+async function runAnalysis() {
+  if(!v('jd') && !document.getElementById('jd').value.trim()) {
+    alert('Please paste a job description first.');
+    return;
+  }
+  goTo(2);
+  document.getElementById('loading-state').style.display='block';
+  document.getElementById('results-state').style.display='none';
+  document.getElementById('error-state').style.display='none';
+  const ticker = animateLoadingSteps('ls-', 4);
+  try {
+    const raw = await callClaude(
+      `Analyze this resume against the job description. Return ONLY valid JSON, no markdown:
+{
+  "score": <integer 0-100>,
+  "keyword_score": <integer 0-100>,
+  "skills_score": <integer 0-100>,
+  "experience_score": <integer 0-100>,
+  "found_keywords": [<max 12 strings>],
+  "missing_keywords": [<max 8 strings>],
+  "feedback": "<3-4 honest sentences about genuine gaps and strengths. Do not suggest adding experience that isn't there.>"
+}
+
+RESUME:
+${getResumeText()}
+
+JOB DESCRIPTION:
+${document.getElementById('jd').value.trim()}`,
+      "You are an expert ATS resume analyzer. Respond ONLY with valid JSON.",
+      800
+    );
+    clearInterval(ticker);
+    analysisResult = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    atsScore = analysisResult.score;
+    showResults();
+  } catch(e) {
+    clearInterval(ticker);
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('error-state').style.display='block';
+    document.getElementById('error-state').innerHTML=`<div class="error-box">Error: ${e.message}<br><br>Please check your connection and try again.</div>`;
+  }
+}
+
+function showResults() {
+  document.getElementById('loading-state').style.display='none';
+  document.getElementById('results-state').style.display='block';
+  const score = analysisResult.score;
+  setTimeout(()=>{
+    const arc = document.getElementById('score-arc');
+    arc.style.strokeDashoffset = 364-(364*score/100);
+    arc.style.stroke = score>=72?'var(--accent)':score>=50?'var(--yellow)':'var(--red)';
+  },100);
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('score-verdict').textContent = score>=80?'Strong match — ready to apply':score>=72?'Good match — minor improvements possible':score>=50?'Moderate match — optimization recommended':'Low match — resume needs optimization';
+
+  setTimeout(()=>{
+    const kw = analysisResult.keyword_score||score;
+    const sk = analysisResult.skills_score||score;
+    const exp = analysisResult.experience_score||score;
+    document.getElementById('bar-kw').style.width=kw+'%';
+    document.getElementById('bar-sk').style.width=sk+'%';
+    document.getElementById('bar-exp').style.width=exp+'%';
+    document.getElementById('val-kw').textContent=kw+'%';
+    document.getElementById('val-sk').textContent=sk+'%';
+    document.getElementById('val-exp').textContent=exp+'%';
+  },200);
+
+  document.getElementById('kw-found').innerHTML=(analysisResult.found_keywords||[]).map(k=>`<span class="kw found">${k}</span>`).join('');
+  document.getElementById('kw-missing').innerHTML=(analysisResult.missing_keywords||[]).map(k=>`<span class="kw missing">${k}</span>`).join('');
+  document.getElementById('feedback-text').textContent=analysisResult.feedback;
+
+  if(score<72) {
+    document.getElementById('low-score-alert').style.display='flex';
+    document.getElementById('next-btn').textContent='Optimize my resume →';
+  } else {
+    document.getElementById('next-btn').textContent='Get optimized resume →';
+  }
+}
+
+async function startRewrite() {
+  document.getElementById('rewrite-loading').style.display='block';
+  document.getElementById('rewrite-done').style.display='none';
+  const ticker = animateLoadingSteps('rl-', 4);
+  try {
+    const missing = (analysisResult.missing_keywords||[]).join(', ');
+    finalResume = await callClaude(
+      `You are an expert resume writer. Rewrite and optimize this resume for the job description.
+
+STRICT RULES — you must follow these exactly:
+1. NEVER invent, fabricate, or add experience, skills, or achievements that are not in the original resume
+2. ONLY reframe and rephrase what already exists using stronger, more relevant language
+3. Naturally incorporate these missing keywords WHERE THEY GENUINELY APPLY to existing experience: ${missing}
+4. If a missing keyword does not apply to any real experience, do NOT add it
+5. Improve bullet points to be more impactful using action verbs and quantifiable results WHERE THEY EXIST
+6. Return ONLY the complete formatted resume text, no commentary, no markdown fences
+
+ORIGINAL RESUME:
+${getResumeText()}
+
+JOB DESCRIPTION:
+${document.getElementById('jd').value.trim()}`,
+      "You are an expert resume writer who never fabricates experience. You only reframe what exists.",
+      1400
+    );
+    clearInterval(ticker);
+
+    // Generate cover letter in parallel
+    generateCoverLetter();
+
+    if(atsScore<72) {
+      document.getElementById('score-improved').style.display='flex';
+      document.getElementById('score-improved-text').textContent='Resume optimized with stronger language and relevant keywords from your real experience.';
+    }
+    renderResume();
+    document.getElementById('rewrite-loading').style.display='none';
+    document.getElementById('rewrite-done').style.display='block';
+  } catch(e) {
+    clearInterval(ticker);
+    document.getElementById('rewrite-loading').innerHTML=`<div class="error-box" style="margin:1rem 0">Error: ${e.message}</div>`;
+  }
+}
+
+async function generateCoverLetter() {
+  document.getElementById('cover-loading').style.display='flex';
+  document.getElementById('cover-done').style.display='none';
+  try {
+    coverLetter = await callClaude(
+      `Write a professional cover letter for this candidate applying to this job.
+
+RULES:
+1. Only reference experience that exists in the resume
+2. Be specific to the job description
+3. 3 paragraphs: intro + relevant experience + closing
+4. Professional but warm tone
+5. Return ONLY the cover letter text, no subject line, no commentary
+
+RESUME:
+${finalResume || getResumeText()}
+
+JOB DESCRIPTION:
+${document.getElementById('jd').value.trim()}`,
+      "You are an expert cover letter writer. Never fabricate experience.",
+      800
+    );
+    document.getElementById('cover-output').textContent = coverLetter;
+    document.getElementById('cover-loading').style.display='none';
+    document.getElementById('cover-done').style.display='block';
+  } catch(e) {
+    document.getElementById('cover-loading').innerHTML=`<div class="error-box">Could not generate cover letter.</div>`;
+  }
+}
+
+function renderResume() {
+  const el = document.getElementById('resume-output');
+  el.textContent = finalResume;
+  el.className = 'resume-preview ' + currentTemplate;
+}
+
+function switchTemplate(t) {
+  currentTemplate = t;
+  document.querySelectorAll('.resume-tab').forEach((el,i)=>el.classList.toggle('active',['classic','modern'][i]===t));
+  renderResume();
+}
+
+function downloadPDF() {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF();
+  const name = getName();
+  if(currentTemplate==='modern') {
+    doc.setFillColor(59,91,219);
+    doc.rect(0,0,210,44,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(22);doc.setFont('helvetica','bold');
+    doc.text(name,15,24);
+    doc.setFontSize(10);doc.setFont('helvetica','normal');
+    const contact = inputMode==='manual' ? `${v('email')} | ${v('phone')} | ${v('location')}` : '';
+    if(contact) doc.text(contact,15,35);
+    doc.setTextColor(30,30,30);
+    const lines = doc.splitTextToSize(finalResume,180);
+    doc.setFontSize(10);
+    doc.text(lines,15,54);
+  } else {
+    doc.setFontSize(20);doc.setFont('helvetica','bold');
+    doc.setTextColor(30,30,30);
+    doc.text(name,105,22,{align:'center'});
+    const contact = inputMode==='manual' ? `${v('email')} | ${v('phone')} | ${v('location')}` : '';
+    if(contact) {
+      doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(90,90,90);
+      doc.text(contact,105,30,{align:'center'});
+    }
+    doc.setDrawColor(200,200,200);doc.line(15,35,195,35);
+    doc.setTextColor(30,30,30);
+    const lines = doc.splitTextToSize(finalResume,180);
+    doc.setFontSize(10);doc.setFont('helvetica','normal');
+    doc.text(lines,15,43);
+  }
+  doc.save(`resume_${name.replace(/\s+/g,'_').toLowerCase()}_${currentTemplate}.pdf`);
+}
+
+function downloadCoverLetter() {
+  if(!coverLetter) { alert('Cover letter is still generating, please wait.'); return; }
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF();
+  const name = getName();
+  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+  const lines = doc.splitTextToSize(coverLetter,180);
+  doc.text(lines,15,20);
+  doc.save(`cover_letter_${name.replace(/\s+/g,'_').toLowerCase()}.pdf`);
+}
+</script>
+</body>
+</html>
