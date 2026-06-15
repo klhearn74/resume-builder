@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Resume Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;min-height:100vh}
+.container{max-width:680px;margin:0 auto;padding:2rem 1rem}
+header{text-align:center;margin-bottom:2rem}
+header h1{font-size:24px;font-weight:600;margin-bottom:6px}
+header p{font-size:14px;color:#666}
+.step{display:none}.step.active{display:block}
+.step-indicator{display:flex;gap:8px;justify-content:center;margin-bottom:1.5rem}
+.dot{width:8px;height:8px;border-radius:50%;background:#ddd;transition:background 0.3s}
+.dot.active{background:#1a1a1a}.dot.done{background:#888}
+.card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:1.5rem;margin-bottom:1rem}
+h2{font-size:18px;font-weight:600;margin-bottom:4px}
+p.sub{font-size:14px;color:#666;margin-bottom:1.25rem}
+label{display:block;font-size:13px;color:#555;margin-bottom:4px;margin-top:14px}
+input,textarea{width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:#1a1a1a;resize:vertical;outline:none}
+input:focus,textarea:focus{border-color:#1a1a1a}
+textarea{min-height:100px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{padding:9px 20px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid #ddd;background:#fff;color:#1a1a1a;font-family:inherit;transition:all 0.15s}
+.btn:hover{background:#f5f5f3}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-primary:hover{background:#333}
+.btn-row{display:flex;gap:10px;margin-top:1.5rem;justify-content:flex-end}
+.score-wrap{display:flex;flex-direction:column;align-items:center;margin:1rem 0 1.5rem}
+.score-label{font-size:13px;color:#666;margin-top:6px}
+.keyword-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.kw{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
+.kw.found{background:#eaf3de;color:#27500a}
+.kw.missing{background:#fcebeb;color:#791f1f}
+.section-title{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #ddd;border-top-color:#1a1a1a;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-wrap{text-align:center;padding:2.5rem 0;font-size:14px;color:#666}
+.resume-preview{font-size:13px;line-height:1.7;white-space:pre-wrap;background:#f9f9f7;border-radius:8px;padding:1.25rem;max-height:360px;overflow-y:auto;border:1px solid #e5e5e5}
+.tabs{display:flex;margin-bottom:1rem;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden}
+.tab{flex:1;padding:9px;font-size:13px;cursor:pointer;border:none;background:#fff;color:#888;font-family:inherit}
+.tab.active{background:#1a1a1a;color:#fff}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px}
+.alert-warn{background:#faeeda;color:#633806;border:1px solid #fac775}
+.alert-success{background:#eaf3de;color:#27500a;border:1px solid #c0dd97}
+.error-box{background:#fcebeb;color:#791f1f;border:1px solid #f09595;border-radius:8px;padding:12px;font-size:13px;margin-top:8px}
+@media(max-width:500px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>AI Resume Builder</h1>
+    <p>Real ATS scoring powered by Claude AI</p>
+  </header>
+
+  <div class="step-indicator" id="dots"></div>
+
+  <div class="step active" id="step-0">
+    <div class="card">
+      <h2>Your details</h2>
+      <p class="sub">Fill in your resume information below.</p>
+      <div class="row">
+        <div><label>Full name</label><input id="name" placeholder="Jane Smith"></div>
+        <div><label>Email</label><input id="email" placeholder="jane@email.com"></div>
+      </div>
+      <div class="row">
+        <div><label>Phone</label><input id="phone" placeholder="(555) 000-0000"></div>
+        <div><label>Location</label><input id="location" placeholder="City, Province"></div>
+      </div>
+      <label>Professional summary</label>
+      <textarea id="summary" placeholder="Brief overview of your experience and strengths..."></textarea>
+      <label>Work experience</label>
+      <textarea id="experience" style="min-height:140px" placeholder="Job Title — Company (Year–Year)&#10;• Achievement or responsibility&#10;• Achievement or responsibility"></textarea>
+      <label>Education</label>
+      <textarea id="education" style="min-height:70px" placeholder="Degree — School, Year"></textarea>
+      <label>Skills</label>
+      <input id="skills" placeholder="e.g. Project Management, Excel, Communication, Salesforce">
+      <div class="btn-row"><button class="btn btn-primary" onclick="goTo(1)">Continue →</button></div>
+    </div>
+  </div>
+
+  <div class="step" id="step-1">
+    <div class="card">
+      <h2>Job description</h2>
+      <p class="sub">Paste the full job posting you're applying to.</p>
+      <textarea id="jd" style="min-height:220px" placeholder="Paste the job description here..."></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="goTo(0)">← Back</button>
+        <button class="btn btn-primary" onclick="runAnalysis()">Analyze & score ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="step" id="step-2">
+    <div class="card">
+      <h2>ATS analysis</h2>
+      <p class="sub">How your resume matches this role.</p>
+      <div id="loading-state" class="loading-wrap">
+        <div class="spinner"></div>
+        <span id="loading-text">Analyzing your resume...</span>
+      </div>
+      <div id="error-state" style="display:none"></div>
+      <div id="results-state" style="display:none">
+        <div class="score-wrap">
+          <svg width="130" height="130" viewBox="0 0 130 130">
+            <circle cx="65" cy="65" r="54" fill="none" stroke="#eee" stroke-width="10"/>
+            <circle id="score-arc" cx="65" cy="65" r="54" fill="none" stroke="#1D9E75" stroke-width="10"
+              stroke-dasharray="339" stroke-dashoffset="339" stroke-linecap="round"
+              transform="rotate(-90 65 65)" style="transition:stroke-dashoffset 1.2s ease"/>
+            <text x="65" y="60" text-anchor="middle" font-size="28" font-weight="600" fill="#1a1a1a" id="score-num">0</text>
+            <text x="65" y="78" text-anchor="middle" font-size="11" fill="#888">ATS score</text>
+          </svg>
+          <div class="score-label" id="score-verdict"></div>
+        </div>
+        <div style="margin-bottom:1rem">
+          <div class="section-title">Keywords found</div>
+          <div class="keyword-grid" id="kw-found"></div>
+          <div style="margin-top:12px"><div class="section-title" style="color:#791f1f">Missing keywords</div>
+          <div class="keyword-grid" id="kw-missing"></div></div>
+        </div>
+        <div style="margin-bottom:1rem">
+          <div class="section-title">Feedback</div>
+          <div id="feedback-text" style="font-size:13px;line-height:1.7;color:#555"></div>
+        </div>
+        <div id="low-score-alert" class="alert alert-warn" style="display:none">
+          Score below 72% — clicking Continue will rewrite your resume to improve it.
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="goTo(1)">← Back</button>
+          <button class="btn btn-primary" id="next-btn" onclick="goTo(3)">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step" id="step-3">
+    <div class="card">
+      <h2>Your optimized resume</h2>
+      <p class="sub">Tailored to the job. Review then download.</p>
+      <div id="rewrite-loading" class="loading-wrap" style="display:none">
+        <div class="spinner"></div>
+        <span id="rewrite-msg">Optimizing your resume...</span>
+      </div>
+      <div id="rewrite-done" style="display:none">
+        <div id="score-improved" class="alert alert-success" style="display:none"></div>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('classic')">Classic</button>
+          <button class="tab" onclick="switchTab('modern')">Modern</button>
+        </div>
+        <div class="resume-preview" id="resume-output"></div>
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn" onclick="goTo(2)">← Back</button>
+          <button class="btn btn-primary" onclick="downloadPDF()">Download PDF ↗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROXY = "https://klhearn74--d5ae17d664fe11f1a8a21607ee4eb77e.web.val.run";
+let currentStep=0, analysisResult=null, finalResume="", currentTemplate="classic", atsScore=0;
+
+const dotsEl=document.getElementById("dots");
+["Details","Job","Analysis","Resume"].forEach((_,i)=>{
+  const d=document.createElement("div");
+  d.className="dot"+(i===0?" active":"");
+  d.id="dot-"+i;
+  dotsEl.appendChild(d);
+});
+
+function goTo(n){
+  document.getElementById("step-"+currentStep).classList.remove("active");
+  document.getElementById("dot-"+currentStep).classList.remove("active");
+  document.getElementById("dot-"+currentStep).classList.add("done");
+  currentStep=n;
+  document.getElementById("step-"+n).classList.add("active");
+  document.getElementById("dot-"+n).classList.remove("done");
+  document.getElementById("dot-"+n).classList.add("active");
+  if(n===3&&!finalResume) startRewrite();
+}
+
+function v(id){return document.getElementById(id).value.trim()}
+
+function getResumeText(){
+  return `Name: ${v("name")}
+Email: ${v("email")} | Phone: ${v("phone")} | Location: ${v("location")}
+
+SUMMARY
+${v("summary")}
+
+EXPERIENCE
+${v("experience")}
+
+EDUCATION
+${v("education")}
+
+SKILLS
+${v("skills")}`;
+}
+
+async function callClaude(system, user, maxTokens=800){
+  const res=await fetch(PROXY,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-haiku-4-5",max_tokens:maxTokens,system,messages:[{role:"user",content:user}]})
+  });
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+  return data.content[0].text;
+}
+
+async function runAnalysis(){
+  goTo(2);
+  document.getElementById("loading-state").style.display="block";
+  document.getElementById("results-state").style.display="none";
+  document.getElementById("error-state").style.display="none";
+  const msgs=["Scanning keywords...","Calculating ATS score...","Generating feedback..."];
+  let mi=0;
+  const ticker=setInterval(()=>{document.getElementById("loading-text").textContent=msgs[mi++%msgs.length];},1800);
+  try{
+    const raw=await callClaude(
+      "You are an expert ATS resume analyzer. Respond ONLY with valid JSON, no markdown, no explanation.",
+      `Analyze this resume against the job description. Return JSON:
+{"score":<integer 0-100>,"found_keywords":[<max 10 strings>],"missing_keywords":[<max 8 strings>],"feedback":"<2-3 sentences>"}
+
+RESUME:
+${getResumeText()}
+
+JOB DESCRIPTION:
+${v("jd")}`,
+      600
+    );
+    clearInterval(ticker);
+    analysisResult=JSON.parse(raw.replace(/```json|```/g,"").trim());
+    atsScore=analysisResult.score;
+    showResults();
+  }catch(e){
+    clearInterval(ticker);
+    document.getElementById("loading-state").style.display="none";
+    document.getElementById("error-state").style.display="block";
+    document.getElementById("error-state").innerHTML=`<div class="error-box">Error: ${e.message}</div>`;
+  }
+}
+
+function showResults(){
+  document.getElementById("loading-state").style.display="none";
+  document.getElementById("results-state").style.display="block";
+  const score=analysisResult.score;
+  setTimeout(()=>{
+    const arc=document.getElementById("score-arc");
+    arc.style.strokeDashoffset=339-(339*score/100);
+    arc.style.stroke=score>=72?"#1D9E75":score>=50?"#BA7517":"#E24B4A";
+  },100);
+  document.getElementById("score-num").textContent=score;
+  document.getElementById("score-verdict").textContent=score>=80?"Strong match":score>=72?"Good match":score>=50?"Needs improvement":"Low match";
+  document.getElementById("kw-found").innerHTML=(analysisResult.found_keywords||[]).map(k=>`<span class="kw found">${k}</span>`).join("");
+  document.getElementById("kw-missing").innerHTML=(analysisResult.missing_keywords||[]).map(k=>`<span class="kw missing">${k}</span>`).join("");
+  document.getElementById("feedback-text").textContent=analysisResult.feedback;
+  if(score<72){
+    document.getElementById("low-score-alert").style.display="block";
+    document.getElementById("next-btn").textContent="Rewrite & optimize →";
+  }else{
+    document.getElementById("next-btn").textContent="Continue →";
+  }
+}
+
+async function startRewrite(){
+  document.getElementById("rewrite-loading").style.display="block";
+  document.getElementById("rewrite-done").style.display="none";
+  const needsRewrite=atsScore<72;
+  const msgs=needsRewrite?["Rewriting resume...","Adding missing keywords...","Optimizing for ATS..."]:["Polishing resume...","Formatting output..."];
+  let mi=0;
+  const ticker=setInterval(()=>{document.getElementById("rewrite-msg").textContent=msgs[mi++%msgs.length];},1800);
+  try{
+    const prompt=needsRewrite
+      ?`Rewrite this resume to better match the job description. Naturally incorporate these missing keywords: ${(analysisResult.missing_keywords||[]).join(", ")}. Keep it honest and professional. Return ONLY the complete resume text, no preamble.
+
+ORIGINAL RESUME:
+${getResumeText()}
+
+JOB DESCRIPTION:
+${v("jd")}`
+      :`Polish and format this resume professionally. Return ONLY the complete resume text, no preamble.
+
+RESUME:
+${getResumeText()}`;
+    finalResume=await callClaude("You are an expert resume writer. Return ONLY the final resume text, no markdown, no preamble.",prompt,1200);
+    clearInterval(ticker);
+    if(needsRewrite){
+      document.getElementById("score-improved").style.display="block";
+      document.getElementById("score-improved").textContent="Resume rewritten to incorporate missing keywords. Your match score should now be significantly higher.";
+    }
+    renderResume();
+    document.getElementById("rewrite-loading").style.display="none";
+    document.getElementById("rewrite-done").style.display="block";
+  }catch(e){
+    clearInterval(ticker);
+    document.getElementById("rewrite-msg").textContent="Error: "+e.message;
+  }
+}
+
+function renderResume(){document.getElementById("resume-output").textContent=finalResume;}
+
+function switchTab(t){
+  currentTemplate=t;
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["classic","modern"][i]===t));
+  renderResume();
+}
+
+function downloadPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const isModern=currentTemplate==="modern";
+  if(isModern){
+    doc.setFillColor(26,26,26);doc.rect(0,0,210,42,"F");
+    doc.setTextColor(255,255,255);doc.setFontSize(20);doc.setFont("helvetica","bold");
+    doc.text(v("name")||"Your Name",15,22);
+    doc.setFontSize(10);doc.setFont("helvetica","normal");
+    doc.text(`${v("email")} | ${v("phone")} | ${v("location")}`,15,34);
+    doc.setTextColor(0,0,0);
+  }else{
+    doc.setFontSize(18);doc.setFont("helvetica","bold");
+    doc.text(v("name")||"Your Name",105,20,{align:"center"});
+    doc.setFontSize(10);doc.setFont("helvetica","normal");
+    doc.text(`${v("email")} | ${v("phone")} | ${v("location")}`,105,29,{align:"center"});
+    doc.setDrawColor(200,200,200);doc.line(15,33,195,33);
+  }
+  const lines=doc.splitTextToSize(finalResume,180);
+  doc.setFontSize(10);doc.setFont("helvetica","normal");doc.setTextColor(50,50,50);
+  doc.text(lines,15,isModern?52:40);
+  doc.save(`resume_${currentTemplate}_${v("name").replace(/\s+/g,"_").toLowerCase()||"download"}.pdf`);
+}
+</script>
+</body>
+</html>
