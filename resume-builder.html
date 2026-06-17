@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeAI — Real ATS Scoring</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;
+  --text:#f0f0f0;--text2:#999;--text3:#555;
+  --accent:#6ee7b7;--accent-dim:#0d2b21;
+  --red:#f87171;--red-dim:#2b0d0d;
+  --yellow:#fbbf24;--yellow-dim:#2b1e00;
+  --blue:#60a5fa;--blue-dim:#0d1f3c;
+  --radius:12px;--radius-sm:7px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:740px;margin:0 auto;padding:2rem 1.25rem 5rem}
+.header{text-align:center;margin-bottom:2rem;padding-top:0.5rem}
+.logo{font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.header h1{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px}
+.header p{font-size:14px;color:var(--text2);max-width:420px;margin:0 auto}
+.badges{display:flex;gap:14px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.badge{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.badge b{color:var(--accent)}
+.steps-nav{display:flex;align-items:center;justify-content:center;margin-bottom:2rem}
+.sdot{display:flex;flex-direction:column;align-items:center;gap:5px}
+.sdot .n{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text3);transition:all 0.3s}
+.sdot .l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em}
+.sdot.active .n{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.sdot.active .l{color:var(--accent)}
+.sdot.done .n{background:var(--text3);border-color:var(--text3);color:var(--bg)}
+.sline{width:40px;height:1px;background:var(--border2);margin:0 6px 16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem;margin-bottom:1rem}
+.card-title{font-size:17px;font-weight:600;margin-bottom:4px}
+.card-sub{font-size:13px;color:var(--text2);margin-bottom:1.25rem}
+.step{display:none}.step.active{display:block}
+label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;margin-top:16px;text-transform:uppercase;letter-spacing:0.07em}
+input,textarea{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface2);color:var(--text);resize:vertical;outline:none;transition:border-color 0.2s}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{min-height:100px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.itabs{display:flex;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1.5rem}
+.itab{flex:1;padding:9px;font-size:13px;cursor:pointer;border:none;background:var(--surface2);color:var(--text2);font-family:inherit;transition:all 0.2s}
+.itab.active{background:var(--accent);color:#000;font-weight:600}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:2rem;text-align:center;cursor:pointer;transition:all 0.2s}
+.upload-zone:hover,.upload-zone.success{border-color:var(--accent);background:var(--accent-dim)}
+.upload-zone .uicon{font-size:32px;margin-bottom:10px}
+.upload-zone p{font-size:13px;color:var(--text2)}
+.upload-zone small{font-size:11px;color:var(--text3);margin-top:4px;display:block}
+.btn{padding:10px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;transition:all 0.2s;white-space:nowrap}
+.btn:hover{background:var(--border2)}
+.btn-primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+.btn-primary:hover{opacity:0.87}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-row{display:flex;gap:8px;margin-top:1.5rem;justify-content:flex-end;flex-wrap:wrap}
+.spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:2.5rem 0}
+.loading-wrap p{font-size:13px;color:var(--text2)}
+.lsteps{display:flex;flex-direction:column;gap:7px;width:100%;max-width:300px}
+.lstep{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:9px;transition:color 0.3s}
+.lstep.active{color:var(--accent)}.lstep.done{color:var(--text3)}
+.lstep .ld{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background 0.3s}
+.lstep.active .ld{background:var(--accent)}.lstep.done .ld{background:var(--text3)}
+.score-wrap{display:flex;flex-direction:column;align-items:center;margin:0.5rem 0 1.75rem}
+.score-verdict{font-size:13px;color:var(--text2);margin-top:8px;font-weight:500}
+.slabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:8px}
+.kw-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.25rem}
+.kw{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
+.kw.found{background:var(--accent-dim);color:var(--accent);border:1px solid #1a5c3a}
+.kw.missing{background:var(--red-dim);color:var(--red);border:1px solid #5c1a1a}
+.brow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.blabel{font-size:12px;color:var(--text2);width:130px;flex-shrink:0}
+.bbg{flex:1;height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.bbar{height:100%;border-radius:3px;transition:width 1.1s ease;background:var(--accent)}
+.bval{font-size:12px;color:var(--text2);width:32px;text-align:right}
+.feedback-box{background:var(--surface2);border-radius:var(--radius-sm);padding:1rem 1.1rem;font-size:13px;color:var(--text2);line-height:1.75;border-left:3px solid var(--accent)}
+.alert{padding:11px 14px;border-radius:var(--radius-sm);font-size:13px;margin-top:12px;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.alert-warn{background:var(--yellow-dim);color:var(--yellow);border:1px solid #5c3800}
+.alert-success{background:var(--accent-dim);color:var(--accent);border:1px solid #1a5c3a}
+.alert-info{background:var(--blue-dim);color:var(--blue);border:1px solid #1a3a5c}
+.error-box{background:var(--red-dim);color:var(--red);border:1px solid #5c1a1a;border-radius:var(--radius-sm);padding:12px;font-size:13px}
+.honesty{background:var(--accent-dim);border:1px solid #1a5c3a;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.privacy{background:var(--blue-dim);border:1px solid #1a3a5c;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--blue);display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.tmpl-tabs{display:flex;gap:8px;margin-bottom:1.25rem}
+.tmpl-tab{padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:inherit;transition:all 0.2s}
+.tmpl-tab.active{background:var(--text);color:var(--bg);font-weight:600;border-color:var(--text)}
+.resume-shell{border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border2);max-height:500px;overflow-y:auto}
+.divider{border:none;border-top:1px solid var(--border);margin:1.5rem 0}
+
+/* URL fetch row */
+.url-row{display:flex;gap:8px;margin-bottom:8px}
+.url-row input{flex:1}
+.url-status{font-size:12px;color:var(--accent);margin-bottom:8px;min-height:16px}
+
+/* Saved resumes panel */
+.saved-panel{margin-bottom:1.5rem}
+.saved-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.saved-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px}
+.saved-item-name{font-weight:500;color:var(--text)}
+.saved-item-date{font-size:11px;color:var(--text3)}
+.saved-item-actions{display:flex;gap:6px}
+
+/* Score comparison */
+.score-compare{display:flex;gap:1.5rem;justify-content:center;margin:1rem 0;flex-wrap:wrap}
+.score-box{text-align:center}
+.score-box .sb-num{font-size:28px;font-weight:700}
+.score-box .sb-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
+.score-arrow{font-size:24px;color:var(--accent);align-self:center}
+
+/* CLASSIC TEMPLATE */
+.classic-resume{background:#fff;color:#1a1a1a;font-family:'Helvetica Neue',Arial,sans-serif;padding:2.25rem 2.5rem;font-size:13px;line-height:1.65}
+.classic-resume .r-name{font-size:26px;font-weight:700;text-align:center;letter-spacing:-0.3px;margin-bottom:3px;color:#111}
+.classic-resume .r-jobtitle{font-size:13px;text-align:center;color:#555;font-weight:400;margin-bottom:8px}
+.classic-resume .r-contact{text-align:center;font-size:11.5px;color:#666;margin-bottom:1.4rem;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.classic-resume .r-contact span{display:flex;align-items:center;gap:4px}
+.classic-resume .r-divider{border:none;border-top:2px solid #111;margin-bottom:1rem}
+.classic-resume .r-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#111;margin-bottom:7px;margin-top:1.2rem;padding-bottom:4px;border-bottom:1px solid #ddd}
+.classic-resume .r-job-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px}
+.classic-resume .r-job-title{font-weight:700;font-size:13.5px;color:#111}
+.classic-resume .r-job-date{font-size:11.5px;color:#777;white-space:nowrap;font-weight:500}
+.classic-resume .r-company{font-size:12px;color:#444;margin-bottom:6px;font-weight:500}
+.classic-resume .r-bullet{padding-left:14px;position:relative;margin-bottom:4px;font-size:12.5px;color:#222;line-height:1.55}
+.classic-resume .r-bullet::before{content:'•';position:absolute;left:3px;color:#555}
+.classic-resume .r-skills-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.classic-resume .r-skill-tag{background:#f3f4f6;color:#374151;padding:3px 10px;border-radius:4px;font-size:11.5px;font-weight:500}
+.classic-resume .r-summary{font-size:12.5px;color:#333;line-height:1.7}
+.classic-resume .r-edu-item{margin-bottom:6px}
+.classic-resume .r-edu-degree{font-weight:600;font-size:12.5px;color:#222}
+.classic-resume .r-edu-school{font-size:12px;color:#555}
+
+/* MODERN TEMPLATE */
+.modern-resume{background:#fff;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px}
+.modern-resume .m-header{background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:2rem 2.25rem}
+.modern-resume .m-name{font-size:26px;font-weight:700;color:#fff;margin-bottom:3px;letter-spacing:-0.3px}
+.modern-resume .m-jobtitle{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;font-weight:500}
+.modern-resume .m-contact{display:flex;flex-wrap:wrap;gap:14px}
+.modern-resume .m-contact span{font-size:11.5px;color:#cbd5e1;display:flex;align-items:center;gap:5px}
+.modern-resume .m-body{padding:1.75rem 2.25rem}
+.modern-resume .m-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#2563eb;margin-bottom:8px;margin-top:1.3rem;display:flex;align-items:center;gap:8px}
+.modern-resume .m-section-title::after{content:'';flex:1;height:1.5px;background:#e2e8f0}
+.modern-resume .m-section-title:first-of-type{margin-top:0}
+.modern-resume .m-job-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px}
+.modern-resume .m-job-title{font-weight:700;font-size:13.5px;color:#111}
+.modern-resume .m-job-date{font-size:11.5px;color:#64748b;font-weight:500;white-space:nowrap}
+.modern-resume .m-company{font-size:12px;color:#2563eb;margin-bottom:6px;font-weight:500}
+.modern-resume .m-bullet{padding-left:16px;position:relative;margin-bottom:4px;font-size:12.5px;color:#374151;line-height:1.55}
+.modern-resume .m-bullet::before{content:'▸';position:absolute;left:2px;color:#2563eb;font-size:10px;top:2px}
+.modern-resume .m-summary{font-size:12.5px;color:#374151;line-height:1.7}
+.modern-resume .m-skills-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.modern-resume .m-skill-tag{background:#eff6ff;color:#1d4ed8;padding:3px 10px;border-radius:4px;font-size:11.5px;font-weight:500;border:1px solid #bfdbfe}
+.modern-resume .m-edu-item{margin-bottom:6px}
+.modern-resume .m-edu-degree{font-weight:600;font-size:12.5px;color:#111}
+.modern-resume .m-edu-school{font-size:12px;color:#64748b}
+
+.cover-preview{background:#fff;color:#1a1a1a;font-family:'Georgia',serif;padding:2rem 2.25rem;font-size:13px;line-height:1.8;border-radius:var(--radius-sm);border:1px solid var(--border2);max-height:340px;overflow-y:auto}
+@media(max-width:520px){.row2{grid-template-columns:1fr}.sline{width:18px}.url-row{flex-direction:column}.score-compare{gap:0.75rem}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">ResumeAI</div>
+    <h1>Land more interviews</h1>
+    <p>Real ATS scoring that shows exactly why your resume gets filtered out — and fixes it honestly.</p>
+    <div class="badges">
+      <div class="badge"><b>✓</b> Real keyword analysis</div>
+      <div class="badge"><b>✓</b> Never fabricates experience</div>
+      <div class="badge"><b>🔒</b> Your data stays on your device</div>
+    </div>
+  </div>
+
+  <div class="steps-nav">
+    <div class="sdot active" id="sdot-0"><div class="n">1</div><div class="l">Resume</div></div>
+    <div class="sline"></div>
+    <div class="sdot" id="sdot-1"><div class="n">2</div><div class="l">Job</div></div>
+    <div class="sline"></div>
+    <div class="sdot" id="sdot-2"><div class="n">3</div><div class="l">Score</div></div>
+    <div class="sline"></div>
+    <div class="sdot" id="sdot-3"><div class="n">4</div><div class="l">Output</div></div>
+  </div>
+
+  <!-- STEP 0: Resume -->
+  <div class="step active" id="step-0">
+    <div class="card">
+      <div class="card-title">Your resume</div>
+      <div class="card-sub">Upload a PDF, fill in manually, or load a saved version.</div>
+
+      <div class="privacy">🔒 Your resume is saved locally in your browser only — never sent to any server.</div>
+
+      <!-- Saved resumes -->
+      <div class="saved-panel" id="saved-panel" style="display:none">
+        <div class="slabel">Saved resumes</div>
+        <div class="saved-list" id="saved-list"></div>
+        <div style="margin-top:8px">
+          <button class="btn btn-sm" onclick="newResume()">+ New resume</button>
+        </div>
+      </div>
+
+      <div id="resume-form">
+        <div class="itabs">
+          <button class="itab active" onclick="switchInputTab('manual')">✏️ Fill in manually</button>
+          <button class="itab" onclick="switchInputTab('upload')">📄 Upload PDF</button>
+        </div>
+
+        <div id="manual-input">
+          <div class="row2">
+            <div><label>Full name</label><input id="name" placeholder="Jane Smith"></div>
+            <div><label>Job title / role</label><input id="jobtitle" placeholder="e.g. Customer Service Rep"></div>
+          </div>
+          <div class="row2">
+            <div><label>Email</label><input id="email" placeholder="jane@email.com"></div>
+            <div><label>Phone</label><input id="phone" placeholder="(555) 000-0000"></div>
+          </div>
+          <div class="row2">
+            <div><label>Location</label><input id="location" placeholder="City, Province"></div>
+            <div><label>LinkedIn (optional)</label><input id="linkedin" placeholder="linkedin.com/in/jane"></div>
+          </div>
+          <label>Professional summary</label>
+          <textarea id="summary" placeholder="Brief overview of your experience and strengths..."></textarea>
+          <label>Work experience</label>
+          <textarea id="experience" style="min-height:160px" placeholder="Job Title — Company (Year–Year)&#10;• Key achievement&#10;• Key achievement&#10;&#10;Job Title — Company (Year–Year)&#10;• Key achievement"></textarea>
+          <label>Education</label>
+          <textarea id="education" style="min-height:70px" placeholder="Degree — School, Year"></textarea>
+          <label>Skills</label>
+          <input id="skills" placeholder="e.g. Customer Service, Cash Handling, Team Leadership">
+        </div>
+
+        <div id="upload-input" style="display:none">
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('pdf-file').click()">
+            <div class="uicon">📄</div>
+            <p>Click to upload your resume PDF</p>
+            <small>Text will be extracted automatically</small>
+          </div>
+          <input type="file" id="pdf-file" accept=".pdf" style="display:none" onchange="handlePDFUpload(event)">
+          <div id="extracted-preview" style="display:none">
+            <label>Extracted content — review and edit if needed</label>
+            <textarea id="extracted-text" style="min-height:220px"></textarea>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-sm" onclick="saveResume()" style="margin-right:auto">💾 Save resume</button>
+          <button class="btn btn-primary" onclick="goToStep1()">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Job description -->
+  <div class="step" id="step-1">
+    <div class="card">
+      <div class="card-title">Job description</div>
+      <div class="card-sub">Paste a URL or the full job description text.</div>
+
+      <label>Job posting URL (optional)</label>
+      <div class="url-row">
+        <input id="job-url" placeholder="https://www.indeed.com/job/..." type="url">
+        <button class="btn btn-sm" onclick="fetchJobURL()">Fetch ↗</button>
+      </div>
+      <div class="url-status" id="url-status"></div>
+
+      <label>Or paste job description</label>
+      <textarea id="jd" style="min-height:200px" placeholder="Paste the full job posting here..."></textarea>
+
+      <div class="btn-row">
+        <button class="btn" onclick="goTo(0)">← Back</button>
+        <button class="btn btn-primary" onclick="runAnalysis()">Analyze & score ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Score -->
+  <div class="step" id="step-2">
+    <div class="card">
+      <div class="card-title">ATS analysis</div>
+      <div class="card-sub">Real keyword matching against this specific job.</div>
+      <div id="loading-state">
+        <div class="loading-wrap">
+          <div class="spinner"></div>
+          <p id="loading-text">Analyzing your resume...</p>
+          <div class="lsteps">
+            <div class="lstep active" id="ls-0"><div class="ld"></div>Extracting keywords from job posting</div>
+            <div class="lstep" id="ls-1"><div class="ld"></div>Matching against your experience</div>
+            <div class="lstep" id="ls-2"><div class="ld"></div>Calculating ATS compatibility score</div>
+            <div class="lstep" id="ls-3"><div class="ld"></div>Generating honest feedback</div>
+          </div>
+        </div>
+      </div>
+      <div id="error-state" style="display:none"></div>
+      <div id="results-state" style="display:none">
+        <div class="score-wrap">
+          <svg width="144" height="144" viewBox="0 0 144 144">
+            <circle cx="72" cy="72" r="60" fill="none" stroke="var(--border2)" stroke-width="10"/>
+            <circle id="score-arc" cx="72" cy="72" r="60" fill="none" stroke="var(--accent)" stroke-width="10"
+              stroke-dasharray="377" stroke-dashoffset="377" stroke-linecap="round"
+              transform="rotate(-90 72 72)" style="transition:stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)"/>
+            <text x="72" y="66" text-anchor="middle" font-size="32" font-weight="700" fill="var(--text)" id="score-num">0</text>
+            <text x="72" y="85" text-anchor="middle" font-size="11" fill="var(--text3)" font-weight="600" letter-spacing="1">ATS SCORE</text>
+          </svg>
+          <div class="score-verdict" id="score-verdict"></div>
+        </div>
+        <div style="margin-bottom:1.25rem">
+          <div class="slabel">Score breakdown</div>
+          <div class="brow"><div class="blabel">Keyword match</div><div class="bbg"><div class="bbar" id="bar-kw" style="width:0%"></div></div><div class="bval" id="val-kw">0%</div></div>
+          <div class="brow"><div class="blabel">Skills alignment</div><div class="bbg"><div class="bbar" id="bar-sk" style="width:0%"></div></div><div class="bval" id="val-sk">0%</div></div>
+          <div class="brow"><div class="blabel">Experience relevance</div><div class="bbg"><div class="bbar" id="bar-exp" style="width:0%"></div></div><div class="bval" id="val-exp">0%</div></div>
+        </div>
+        <div class="slabel">Keywords found in your resume</div>
+        <div class="kw-grid" id="kw-found"></div>
+        <div class="slabel" style="color:var(--red)">Missing keywords</div>
+        <div class="kw-grid" id="kw-missing"></div>
+        <div class="slabel">Honest feedback</div>
+        <div class="feedback-box" id="feedback-text"></div>
+        <div id="low-score-alert" class="alert alert-warn" style="display:none">
+          <span>⚠️</span><span>Score below 72% — the next step will optimize your resume using only your real experience.</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="goTo(1)">← Back</button>
+          <button class="btn btn-primary" id="next-btn" onclick="goTo(3)">Get optimized resume →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Output -->
+  <div class="step" id="step-3">
+    <div class="card">
+      <div class="card-title">Your optimized resume</div>
+      <div class="card-sub">Rewritten to match this role using only your real experience.</div>
+      <div id="rewrite-loading">
+        <div class="loading-wrap">
+          <div class="spinner"></div>
+          <p>Optimizing your resume...</p>
+          <div class="lsteps">
+            <div class="lstep active" id="rl-0"><div class="ld"></div>Analyzing your real experience</div>
+            <div class="lstep" id="rl-1"><div class="ld"></div>Reframing language to match job</div>
+            <div class="lstep" id="rl-2"><div class="ld"></div>Incorporating keywords honestly</div>
+            <div class="lstep" id="rl-3"><div class="ld"></div>Structuring final resume</div>
+          </div>
+        </div>
+      </div>
+      <div id="rewrite-done" style="display:none">
+        <div class="honesty">✓ Built from your real experience — reframed with stronger language to match the job.</div>
+
+        <!-- Score comparison -->
+        <div id="score-compare-wrap" style="display:none;margin-bottom:1.25rem">
+          <div class="slabel" style="text-align:center">ATS Score improvement</div>
+          <div class="score-compare">
+            <div class="score-box"><div class="sb-num" id="sc-before" style="color:var(--red)">—</div><div class="sb-label">Before</div></div>
+            <div class="score-arrow">→</div>
+            <div class="score-box"><div class="sb-num" id="sc-after" style="color:var(--accent)">—</div><div class="sb-label">After</div></div>
+          </div>
+        </div>
+
+        <div class="tmpl-tabs">
+          <button class="tmpl-tab active" onclick="switchTemplate('classic')">Classic</button>
+          <button class="tmpl-tab" onclick="switchTemplate('modern')">Modern</button>
+        </div>
+        <div class="resume-shell" id="resume-shell"></div>
+
+        <hr class="divider">
+        <div class="card-title" style="margin-bottom:4px">Cover letter</div>
+        <div class="card-sub">Tailored to this specific role.</div>
+        <div id="cover-loading" class="loading-wrap" style="padding:1rem 0"><div class="spinner"></div><p>Writing cover letter...</p></div>
+        <div id="cover-done" style="display:none">
+          <div class="cover-preview" id="cover-output"></div>
+        </div>
+
+        <div class="btn-row" style="margin-top:1.5rem">
+          <button class="btn" onclick="goTo(2)">← Back</button>
+          <button class="btn btn-sm" onclick="downloadCoverLetter()">Cover Letter PDF</button>
+          <button class="btn btn-sm" onclick="downloadDOCX()">Resume DOCX</button>
+          <button class="btn btn-primary" onclick="downloadPDF()">Resume PDF ↓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const PROXY="https://klhearn74--d5ae17d664fe11f1a8a21607ee4eb77e.web.val.run";
+let step=0,result=null,resumeData=null,finalResume="",coverLetter="",template="classic",atsScore=0,inputMode="manual",originalScore=0;
+
+// ── localStorage resume versioning ──────────────────────────────
+function getSavedResumes(){try{return JSON.parse(localStorage.getItem('resumeai_resumes')||'[]');}catch{return[];}}
+function saveSavedResumes(arr){localStorage.setItem('resumeai_resumes',JSON.stringify(arr));}
+
+function loadSavedPanel(){
+  const saved=getSavedResumes();
+  const panel=document.getElementById('saved-panel');
+  const list=document.getElementById('saved-list');
+  if(saved.length===0){panel.style.display='none';return;}
+  panel.style.display='block';
+  list.innerHTML=saved.map((r,i)=>`
+    <div class="saved-item">
+      <div><div class="saved-item-name">${r.name||'Unnamed resume'}</div><div class="saved-item-date">${r.date||''}</div></div>
+      <div class="saved-item-actions">
+        <button class="btn btn-sm" onclick="loadResume(${i})">Load</button>
+        <button class="btn btn-sm" onclick="deleteResume(${i})" style="color:var(--red)">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function saveResume(){
+  const name=v('name')||'Unnamed resume';
+  const saved=getSavedResumes();
+  const entry={
+    name,date:new Date().toLocaleDateString(),
+    inputMode,
+    fields:{name:v('name'),jobtitle:v('jobtitle'),email:v('email'),phone:v('phone'),location:v('location'),linkedin:v('linkedin'),summary:v('summary'),experience:v('experience'),education:v('education'),skills:v('skills')},
+    extracted:v('extracted-text')
+  };
+  // Replace existing with same name or add new
+  const idx=saved.findIndex(r=>r.name===name);
+  if(idx>=0) saved[idx]=entry; else saved.unshift(entry);
+  saveSavedResumes(saved.slice(0,10));
+  loadSavedPanel();
+  showToast('Resume saved!');
+}
+
+function loadResume(i){
+  const saved=getSavedResumes();
+  const r=saved[i];
+  if(!r) return;
+  inputMode=r.inputMode||'manual';
+  switchInputTab(inputMode);
+  if(inputMode==='manual'){
+    Object.entries(r.fields||{}).forEach(([k,val])=>{const el=document.getElementById(k);if(el)el.value=val||'';});
+  } else {
+    document.getElementById('extracted-text').value=r.extracted||'';
+    document.getElementById('extracted-preview').style.display='block';
+  }
+  showToast('Resume loaded!');
+}
+
+function deleteResume(i){
+  const saved=getSavedResumes();
+  saved.splice(i,1);
+  saveSavedResumes(saved);
+  loadSavedPanel();
+}
+
+function newResume(){
+  ['name','jobtitle','email','phone','location','linkedin','summary','experience','education','skills'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('extracted-text').value='';
+}
+
+function showToast(msg){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#000;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;transition:opacity 0.3s';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},2000);
+}
+
+// ── Input tab switching ──────────────────────────────────────────
+function switchInputTab(m){
+  inputMode=m;
+  document.querySelectorAll('.itab').forEach((t,i)=>t.classList.toggle('active',['manual','upload'][i]===m));
+  document.getElementById('manual-input').style.display=m==='manual'?'block':'none';
+  document.getElementById('upload-input').style.display=m==='upload'?'block':'none';
+}
+
+async function handlePDFUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const zone=document.getElementById('upload-zone');
+  zone.className='upload-zone success';
+  zone.innerHTML='<div class="uicon">⏳</div><p>Extracting resume text...</p>';
+  try{
+    const b64=await toBase64(file);
+    const text=await callClaude("Extract all text from this resume PDF. Return raw text preserving structure. No commentary.",null,1500,b64);
+    zone.innerHTML=`<div class="uicon">✅</div><p>${file.name}</p><small>Extracted successfully</small>`;
+    document.getElementById('extracted-preview').style.display='block';
+    document.getElementById('extracted-text').value=text;
+  }catch(err){
+    zone.innerHTML='<div class="uicon">❌</div><p>Could not read PDF. Please fill in manually.</p>';
+    switchInputTab('manual');
+  }
+}
+
+function toBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
+
+// ── Job URL fetching ─────────────────────────────────────────────
+async function fetchJobURL(){
+  const url=document.getElementById('job-url').value.trim();
+  if(!url){showToast('Please enter a URL first');return;}
+  const status=document.getElementById('url-status');
+  status.textContent='⏳ Fetching job posting...';
+  try{
+    const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fetch_url:url})});
+    const data=await res.json();
+    if(!data.text) throw new Error('Could not extract text');
+    // Use AI to extract just the job description from the page text
+    const jdText=await callClaude(
+      `Extract only the job description content from this webpage text. Return just the job title, requirements, responsibilities and qualifications. Remove navigation, ads, and unrelated content.\n\n${data.text}`,
+      "Extract job description content only. Be concise.",600
+    );
+    document.getElementById('jd').value=jdText;
+    status.textContent='✓ Job description extracted successfully';
+    status.style.color='var(--accent)';
+  }catch(e){
+    status.textContent='✗ Could not fetch that URL — please paste the job description manually';
+    status.style.color='var(--red)';
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function v(id){return(document.getElementById(id)||{}).value?.trim()||'';}
+function getResumeText(){
+  if(inputMode==='upload') return v('extracted-text');
+  return `${v('name')}${v('jobtitle')?'\n'+v('jobtitle'):''}
+${[v('email'),v('phone'),v('location'),v('linkedin')].filter(Boolean).join(' | ')}
+SUMMARY\n${v('summary')}
+EXPERIENCE\n${v('experience')}
+EDUCATION\n${v('education')}
+SKILLS\n${v('skills')}`.trim();
+}
+function getContactLine(){return inputMode==='upload'?'':[v('email'),v('phone'),v('location'),v('linkedin')].filter(Boolean).join(' | ');}
+function getName(){return inputMode==='upload'?v('extracted-text').split('\n')[0].trim()||'Candidate':v('name')||'Candidate';}
+function getJobTitle(){return v('jobtitle')||'';}
+
+// ── Navigation ───────────────────────────────────────────────────
+function goTo(n){
+  document.getElementById('step-'+step).classList.remove('active');
+  ['active','done'].forEach(c=>document.getElementById('sdot-'+step).classList.remove(c));
+  document.getElementById('sdot-'+step).classList.add('done');
+  step=n;
+  document.getElementById('step-'+n).classList.add('active');
+  document.getElementById('sdot-'+n).classList.remove('done');
+  document.getElementById('sdot-'+n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===3&&!finalResume) startRewrite();
+}
+function goToStep1(){
+  if(getResumeText().length<40){alert('Please fill in your resume details first.');return;}
+  goTo(1);
+}
+
+// ── API call ─────────────────────────────────────────────────────
+async function callClaude(prompt,system,maxTokens=800,pdfB64=null,model='claude-haiku-4-5'){
+  const content=pdfB64?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfB64}},{type:'text',text:prompt}]:prompt;
+  const body={model,max_tokens:maxTokens,temperature:0,messages:[{role:'user',content}]};
+  if(system) body.system=system;
+  const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+  return data.content.map(b=>b.text||'').join('');
+}
+
+function animLSteps(prefix,count,interval=1300){
+  let i=0;
+  const t=setInterval(()=>{
+    if(i>0) document.getElementById(prefix+(i-1))?.classList.replace('active','done');
+    if(i<count){document.getElementById(prefix+i)?.classList.add('active');i++;}
+    else clearInterval(t);
+  },interval);
+  return t;
+}
+
+// ── Analysis ─────────────────────────────────────────────────────
+async function runAnalysis(){
+  if(!v('jd')){alert('Please paste a job description first.');return;}
+  goTo(2);
+  document.getElementById('loading-state').style.display='block';
+  document.getElementById('results-state').style.display='none';
+  document.getElementById('error-state').style.display='none';
+  const t=animLSteps('ls-',4);
+  try{
+    const raw=await callClaude(
+      `Analyze this resume against the job description. Return ONLY valid JSON, no markdown:
+{"score":<int 0-100>,"keyword_score":<int 0-100>,"skills_score":<int 0-100>,"experience_score":<int 0-100>,"found_keywords":[<max 12 strings>],"missing_keywords":[<max 8 strings>],"feedback":"<3-4 honest sentences about real gaps. Do not suggest fabricating experience.>"}
+
+RESUME:\n${getResumeText()}\n\nJOB DESCRIPTION:\n${v('jd')}`,
+      "You are an expert ATS resume analyzer. Respond ONLY with valid JSON.",800
+    );
+    clearInterval(t);
+    let clean=raw.replace(/```json|```/g,'').trim();
+    const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+    if(s!==-1&&e!==-1) clean=clean.slice(s,e+1);
+    result=JSON.parse(clean);
+    atsScore=result.score;
+    originalScore=result.score;
+    showResults();
+  }catch(e){
+    clearInterval(t);
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('error-state').style.display='block';
+    document.getElementById('error-state').innerHTML=`<div class="error-box">Error: ${e.message}</div>`;
+  }
+}
+
+function showResults(){
+  document.getElementById('loading-state').style.display='none';
+  document.getElementById('results-state').style.display='block';
+  const s=result.score;
+  setTimeout(()=>{
+    const arc=document.getElementById('score-arc');
+    arc.style.strokeDashoffset=377-(377*s/100);
+    arc.style.stroke=s>=72?'var(--accent)':s>=50?'var(--yellow)':'var(--red)';
+  },100);
+  document.getElementById('score-num').textContent=s;
+  document.getElementById('score-verdict').textContent=s>=80?'Strong match — ready to apply':s>=72?'Good match — minor improvements possible':s>=50?'Moderate match — optimization recommended':'Low match — resume needs optimization';
+  setTimeout(()=>{
+    const kw=result.keyword_score||s,sk=result.skills_score||s,exp=result.experience_score||s;
+    ['kw','sk','exp'].forEach((k,i)=>{
+      const val=[kw,sk,exp][i];
+      document.getElementById('bar-'+k).style.width=val+'%';
+      document.getElementById('val-'+k).textContent=val+'%';
+    });
+  },200);
+  document.getElementById('kw-found').innerHTML=(result.found_keywords||[]).map(k=>`<span class="kw found">${k}</span>`).join('');
+  document.getElementById('kw-missing').innerHTML=(result.missing_keywords||[]).map(k=>`<span class="kw missing">${k}</span>`).join('');
+  document.getElementById('feedback-text').textContent=result.feedback;
+  if(s<72){document.getElementById('low-score-alert').style.display='flex';document.getElementById('next-btn').textContent='Optimize my resume →';}
+  else document.getElementById('next-btn').textContent='Get optimized resume →';
+}
+
+// ── Rewrite ──────────────────────────────────────────────────────
+async function startRewrite(){
+  document.getElementById('rewrite-loading').style.display='block';
+  document.getElementById('rewrite-done').style.display='none';
+  const t=animLSteps('rl-',4);
+  try{
+    const missing=(result.missing_keywords||[]).join(', ');
+    const raw=await callClaude(
+      `You are an expert resume writer. Rewrite and optimize this resume for the job description.
+
+RULE 1 — SKILLS (CRITICAL): The skills array must contain ONLY skills copied word-for-word from the original resume skills section. Do not add, rename, or invent any skill. If unsure — leave it out.
+
+RULE 2 — SUMMARY: Describe who the candidate genuinely is based on their real background. Use their actual job titles as the anchor. Do NOT reframe them as something they are not.
+
+RULE 3 — EXPERIENCE:
+- Sort jobs by relevance to the job description — most relevant first
+- Most relevant jobs: 5-6 strong concise bullets (under 20 words each) starting with action verbs
+- Less relevant jobs: keep but shrink to 2-3 bullets on transferable skills only
+- Never invent achievements, tools, or responsibilities not in the original
+
+RULE 4 — EDUCATION: Set education_relevant to false if education is unrelated to the job.
+
+Only incorporate these keywords where they genuinely apply to real experience: ${missing}
+
+Return ONLY valid JSON, no markdown:
+{"name":"<full name>","jobtitle":"<honest title>","contact":"<email | phone | location>","summary":"<2-3 sentences>","experience":[{"title":"","company":"","dates":"","bullets":[""]}],"education":[{"degree":"","school":"","year":""}],"education_relevant":<true/false>,"skills":["<word-for-word from original only>"]}
+
+ORIGINAL RESUME:\n${getResumeText()}\n\nJOB DESCRIPTION:\n${v('jd')}`,
+      "You are an expert resume writer. Never fabricate skills. Skills must be copied exactly from the original. Return only valid JSON.",
+      1600,null,'claude-sonnet-4-6'
+    );
+    clearInterval(t);
+    let clean=raw.replace(/```json|```/g,'').trim();
+    const s2=clean.indexOf('{'),e2=clean.lastIndexOf('}');
+    if(s2!==-1&&e2!==-1) clean=clean.slice(s2,e2+1);
+    resumeData=JSON.parse(clean);
+    finalResume=JSON.stringify(resumeData);
+    renderResume();
+    document.getElementById('rewrite-loading').style.display='none';
+    document.getElementById('rewrite-done').style.display='block';
+    // Re-score the optimized resume
+    rescoreOptimized();
+    generateCoverLetter();
+  }catch(e){
+    clearInterval(t);
+    document.getElementById('rewrite-loading').innerHTML=`<div class="error-box">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Re-score after optimization ───────────────────────────────────
+async function rescoreOptimized(){
+  try{
+    const raw=await callClaude(
+      `Analyze this optimized resume against the job description. Return ONLY valid JSON:
+{"score":<int 0-100>}
+RESUME:\n${finalResume}\n\nJOB DESCRIPTION:\n${v('jd')}`,
+      "You are an ATS analyzer. Return only JSON.",300
+    );
+    let clean=raw.replace(/```json|```/g,'').trim();
+    const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+    if(s!==-1&&e!==-1) clean=clean.slice(s,e+1);
+    const data=JSON.parse(clean);
+    const newScore=data.score||0;
+    document.getElementById('sc-before').textContent=originalScore+'%';
+    document.getElementById('sc-after').textContent=newScore+'%';
+    document.getElementById('score-compare-wrap').style.display='block';
+  }catch(e){console.log('Rescore failed',e);}
+}
+
+// ── Render resume ─────────────────────────────────────────────────
+function renderResume(){
+  const d=resumeData;
+  const shell=document.getElementById('resume-shell');
+  const eduRelevant=d.education_relevant!==false;
+  const contactParts=(d.contact||getContactLine()).split('|').map(c=>c.trim()).filter(Boolean);
+  const contactIcons=['✉','📞','📍','🔗'];
+  if(template==='classic'){
+    const expHTML=(d.experience||[]).map(j=>`
+      <div style="margin-bottom:14px">
+        <div class="r-job-header"><span class="r-job-title">${j.title}</span><span class="r-job-date">${j.dates||''}</span></div>
+        <div class="r-company">${j.company||''}</div>
+        ${(j.bullets||[]).map(b=>`<div class="r-bullet">${b}</div>`).join('')}
+      </div>`).join('');
+    const skillsHTML=(d.skills||[]).map(s=>`<span class="r-skill-tag">${s}</span>`).join('');
+    const eduHTML=eduRelevant
+      ?(d.education||[]).map(e=>`<div class="r-edu-item"><div class="r-edu-degree">${e.degree}</div><div class="r-edu-school">${[e.school,e.year].filter(Boolean).join(', ')}</div></div>`).join('')
+      :(d.education||[]).map(e=>`<div style="font-size:11.5px;color:#999;margin-bottom:3px">${e.degree}${e.school?`, ${e.school}`:''}${e.year?`, ${e.year}`:''}</div>`).join('');
+    shell.innerHTML=`<div class="classic-resume">
+      <div class="r-name">${d.name||getName()}</div>
+      ${d.jobtitle?`<div class="r-jobtitle">${d.jobtitle}</div>`:''}
+      <div class="r-contact">${contactParts.map((c,i)=>`<span>${contactIcons[i]||''} ${c}</span>`).join('')}</div>
+      <hr class="r-divider">
+      ${d.summary?`<div class="r-section-title">Professional Summary</div><div class="r-summary">${d.summary}</div>`:''}
+      ${d.experience?.length?`<div class="r-section-title">Experience</div>${expHTML}`:''}
+      ${d.skills?.length?`<div class="r-section-title">Skills</div><div class="r-skills-wrap">${skillsHTML}</div>`:''}
+      ${d.education?.length?`<div class="r-section-title" style="${!eduRelevant?'color:#bbb':''}">Education</div>${eduHTML}`:''}
+    </div>`;
+  }else{
+    const expHTML=(d.experience||[]).map(j=>`
+      <div style="margin-bottom:16px">
+        <div class="m-job-header"><span class="m-job-title">${j.title}</span><span class="m-job-date">${j.dates||''}</span></div>
+        <div class="m-company">${j.company||''}</div>
+        ${(j.bullets||[]).map(b=>`<div class="m-bullet">${b}</div>`).join('')}
+      </div>`).join('');
+    const skillsHTML=(d.skills||[]).map(s=>`<span class="m-skill-tag">${s}</span>`).join('');
+    const eduHTML=eduRelevant
+      ?(d.education||[]).map(e=>`<div class="m-edu-item"><div class="m-edu-degree">${e.degree}</div><div class="m-edu-school">${[e.school,e.year].filter(Boolean).join(', ')}</div></div>`).join('')
+      :(d.education||[]).map(e=>`<div style="font-size:11.5px;color:#94a3b8;margin-bottom:3px">${e.degree}${e.school?`, ${e.school}`:''}${e.year?`, ${e.year}`:''}</div>`).join('');
+    shell.innerHTML=`<div class="modern-resume">
+      <div class="m-header">
+        <div class="m-name">${d.name||getName()}</div>
+        ${d.jobtitle?`<div class="m-jobtitle">${d.jobtitle}</div>`:''}
+        <div class="m-contact">${contactParts.map((c,i)=>`<span>${contactIcons[i]||''} ${c}</span>`).join('')}</div>
+      </div>
+      <div class="m-body">
+        ${d.summary?`<div class="m-section-title">Profile</div><div class="m-summary">${d.summary}</div>`:''}
+        ${d.experience?.length?`<div class="m-section-title">Experience</div>${expHTML}`:''}
+        ${d.skills?.length?`<div class="m-section-title">Skills</div><div class="m-skills-wrap">${skillsHTML}</div>`:''}
+        ${d.education?.length?`<div class="m-section-title" style="${!eduRelevant?'color:#94a3b8':''}">Education</div>${eduHTML}`:''}
+      </div>
+    </div>`;
+  }
+}
+
+function switchTemplate(t){
+  template=t;
+  document.querySelectorAll('.tmpl-tab').forEach((el,i)=>el.classList.toggle('active',['classic','modern'][i]===t));
+  if(resumeData) renderResume();
+}
+
+// ── Cover letter ──────────────────────────────────────────────────
+async function generateCoverLetter(){
+  document.getElementById('cover-loading').style.display='flex';
+  document.getElementById('cover-done').style.display='none';
+  try{
+    coverLetter=await callClaude(
+      `Write a professional cover letter for this candidate applying to this job.
+Rules: Only reference real experience. 3 paragraphs: intro + relevant experience + closing. Professional but warm. Return ONLY the letter text, no subject line.
+RESUME:\n${getResumeText()}\nJOB DESCRIPTION:\n${v('jd')}`,
+      "You are an expert cover letter writer. Never fabricate experience.",800
+    );
+    document.getElementById('cover-output').textContent=coverLetter;
+    document.getElementById('cover-loading').style.display='none';
+    document.getElementById('cover-done').style.display='block';
+  }catch(e){
+    document.getElementById('cover-loading').innerHTML=`<div class="error-box">Could not generate cover letter.</div>`;
+  }
+}
+
+// ── PDF download ──────────────────────────────────────────────────
+function downloadPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const d=resumeData||{};
+  const name=d.name||getName();
+  const contact=d.contact||getContactLine();
+  if(template==='modern'){
+    doc.setFillColor(30,41,59);doc.rect(0,0,210,44,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(20);doc.setFont('helvetica','bold');
+    doc.text(name,15,22);
+    if(d.jobtitle){doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(148,163,184);doc.text(d.jobtitle.toUpperCase(),15,29);}
+    doc.setFontSize(9);doc.setTextColor(203,213,225);
+    doc.text(contact.split('|').map(c=>c.trim()).join('  •  '),15,37);
+    doc.setTextColor(30,30,30);let y=54;
+    const section=(title,color=[37,99,235])=>{
+      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(...color);doc.text(title.toUpperCase(),15,y);
+      doc.setDrawColor(226,232,240);doc.line(15,y+2,195,y+2);y+=9;
+    };
+    if(d.summary){section('Profile');doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(55,65,81);const sl=doc.splitTextToSize(d.summary,178);doc.text(sl,15,y);y+=sl.length*5+6;}
+    if(d.experience?.length){section('Experience');d.experience.forEach(j=>{doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(17,17,17);doc.text(j.title,15,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,116,139);doc.text(j.dates||'',195,y,{align:'right'});y+=5;doc.setTextColor(37,99,235);doc.text(j.company||'',15,y);y+=6;doc.setTextColor(55,65,81);(j.bullets||[]).forEach(b=>{const bl=doc.splitTextToSize('▸ '+b,175);doc.setFontSize(9);doc.text(bl,15,y);y+=bl.length*5;});y+=3;});}
+    if(d.skills?.length){section('Skills');doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(55,65,81);const sl=doc.splitTextToSize(d.skills.join(' · '),178);doc.text(sl,15,y);y+=sl.length*5+6;}
+    if(d.education?.length&&d.education_relevant!==false){section('Education');d.education.forEach(e=>{doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(17,17,17);doc.text(e.degree,15,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,116,139);doc.text([e.school,e.year].filter(Boolean).join(', '),15,y+5);y+=12;});}
+  }else{
+    doc.setFontSize(22);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);doc.text(name,105,22,{align:'center'});
+    if(d.jobtitle){doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(85,85,85);doc.text(d.jobtitle,105,30,{align:'center'});}
+    doc.setFontSize(9);doc.setTextColor(100,100,100);doc.text(contact.split('|').map(c=>c.trim()).join('  |  '),105,37,{align:'center'});
+    doc.setDrawColor(17,17,17);doc.setLineWidth(0.5);doc.line(15,41,195,41);
+    let y=49;
+    const section=(title)=>{doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);doc.text(title.toUpperCase(),15,y);doc.setDrawColor(200,200,200);doc.setLineWidth(0.3);doc.line(15,y+2,195,y+2);y+=9;};
+    if(d.summary){section('Professional Summary');doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,50,50);const sl=doc.splitTextToSize(d.summary,178);doc.text(sl,15,y);y+=sl.length*5+6;}
+    if(d.experience?.length){section('Experience');d.experience.forEach(j=>{doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(17,17,17);doc.text(j.title,15,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,100,100);doc.text(j.dates||'',195,y,{align:'right'});y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(68,68,68);doc.text(j.company||'',15,y);y+=6;doc.setTextColor(50,50,50);(j.bullets||[]).forEach(b=>{const bl=doc.splitTextToSize('• '+b,175);doc.setFontSize(9.5);doc.text(bl,15,y);y+=bl.length*5;});y+=4;});}
+    if(d.skills?.length){section('Skills');doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,50,50);const sl=doc.splitTextToSize(d.skills.join(' · '),178);doc.text(sl,15,y);y+=sl.length*5+6;}
+    if(d.education?.length){section('Education');d.education.forEach(e=>{const rel=resumeData.education_relevant!==false;doc.setFont('helvetica','bold');doc.setFontSize(rel?10.5:9.5);doc.setTextColor(rel?17:150,rel?17:150,rel?17:150);doc.text(e.degree,15,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,100,100);doc.text([e.school,e.year].filter(Boolean).join(', '),15,y+5);y+=12;});}
+  }
+  doc.save(`resume_${name.replace(/\s+/g,'_').toLowerCase()}_${template}.pdf`);
+}
+
+// ── DOCX download ─────────────────────────────────────────────────
+function downloadDOCX(){
+  const d=resumeData||{};
+  const name=d.name||getName();
+  const contact=(d.contact||getContactLine()).split('|').map(c=>c.trim()).join(' | ');
+  let content=`${name}\n${d.jobtitle||''}\n${contact}\n\n`;
+  if(d.summary) content+=`PROFESSIONAL SUMMARY\n${d.summary}\n\n`;
+  if(d.experience?.length){
+    content+='EXPERIENCE\n';
+    d.experience.forEach(j=>{
+      content+=`${j.title} — ${j.company} (${j.dates||''})\n`;
+      (j.bullets||[]).forEach(b=>content+=`• ${b}\n`);
+      content+='\n';
+    });
+  }
+  if(d.skills?.length) content+=`SKILLS\n${d.skills.join(', ')}\n\n`;
+  if(d.education?.length){
+    content+='EDUCATION\n';
+    d.education.forEach(e=>content+=`${e.degree}${e.school?` — ${e.school}`:''}${e.year?`, ${e.year}`:''}\n`);
+  }
+  // Create a simple RTF file (opens in Word)
+  const rtf=`{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Helvetica;}}\\f0\\fs22 ${content.replace(/\n/g,'\\par ').replace(/[{}\\]/g,'\\$&')}}`;
+  const blob=new Blob([rtf],{type:'application/rtf'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`resume_${name.replace(/\s+/g,'_').toLowerCase()}.rtf`;a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Cover letter PDF ──────────────────────────────────────────────
+function downloadCoverLetter(){
+  if(!coverLetter){alert('Cover letter is still generating, please wait.');return;}
+  const{jsPDF}=window.jspdf;const doc=new jsPDF();
+  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+  const lines=doc.splitTextToSize(coverLetter,178);doc.text(lines,15,20);
+  doc.save(`cover_letter_${getName().replace(/\s+/g,'_').toLowerCase()}.pdf`);
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+loadSavedPanel();
+</script>
+</body>
+</html>
