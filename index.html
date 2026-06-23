@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeFit — See your real ATS score before you apply</title>
+<style>
+:root{
+  --ink:#161512;--paper:#faf7f0;--paper2:#f0ebe0;
+  --rust:#c1502e;--rust-dim:#f4ddd3;
+  --green:#3d5c47;--green-dim:#dde8de;
+  --line:#d8d2c2;--muted:#6b6558;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;overflow-x:hidden}
+@font-face{font-family:'fallback-serif';src:local('Georgia')}
+.serif{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif}
+
+.wrap{max-width:1080px;margin:0 auto;padding:0 1.5rem}
+a{color:inherit;text-decoration:none}
+
+/* Nav */
+nav{display:flex;align-items:center;justify-content:space-between;padding:1.5rem 0}
+.nav-logo{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:20px;font-weight:700;letter-spacing:-0.3px}
+.nav-cta{background:var(--ink);color:var(--paper);padding:9px 20px;border-radius:30px;font-size:14px;font-weight:600;transition:opacity 0.2s}
+.nav-cta:hover{opacity:0.85}
+
+/* Hero */
+.hero{padding:3.5rem 0 5rem;position:relative}
+.hero-eyebrow{font-size:13px;font-weight:600;color:var(--rust);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px}
+.hero-eyebrow::before{content:'';width:6px;height:6px;background:var(--rust);border-radius:50%}
+.hero h1{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:56px;line-height:1.06;font-weight:700;letter-spacing:-1px;max-width:780px;margin-bottom:1.5rem}
+.hero h1 em{font-style:italic;color:var(--rust)}
+.hero-sub{font-size:18px;color:var(--muted);max-width:560px;margin-bottom:2.25rem;line-height:1.6}
+.hero-ctas{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:2.5rem}
+.btn-primary{background:var(--ink);color:var(--paper);padding:15px 30px;border-radius:30px;font-size:16px;font-weight:600;transition:transform 0.15s,opacity 0.15s;display:inline-block}
+.btn-primary:hover{transform:translateY(-1px);opacity:0.9}
+.hero-note{font-size:13px;color:var(--muted)}
+.hero-note b{color:var(--ink)}
+
+/* The "void" signature visual — animated rejection stack */
+.void-visual{position:relative;height:280px;max-width:480px;margin:0 auto 1rem}
+.void-card{position:absolute;width:280px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.06);font-size:12px}
+.void-card .vc-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px}
+.void-card.rejected .vc-status{background:#fbe4e0;color:#a13a1f}
+.void-card.silent .vc-status{background:#f0ebe0;color:var(--muted)}
+.void-card .vc-line{height:6px;background:var(--paper2);border-radius:3px;margin-bottom:6px}
+.void-card .vc-line.w60{width:60%}.void-card .vc-line.w80{width:80%}.void-card .vc-line.w40{width:40%}
+
+/* Stats strip */
+.stats-strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:2.5rem 0}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem}
+.stat-num{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:42px;font-weight:700;color:var(--rust);letter-spacing:-1px;line-height:1}
+.stat-label{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.4}
+
+/* Section heading pattern */
+.section{padding:5rem 0}
+.section-eyebrow{font-size:13px;font-weight:600;color:var(--rust);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem}
+.section h2{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:36px;font-weight:700;letter-spacing:-0.5px;max-width:600px;margin-bottom:1rem}
+.section-sub{font-size:16px;color:var(--muted);max-width:560px;line-height:1.6}
+
+/* How it differs - comparison table */
+.compare{margin-top:3rem;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.compare-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line)}
+.compare-row:last-child{border-bottom:none}
+.compare-row.header{background:var(--paper2);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted)}
+.compare-cell{padding:1.1rem 1.25rem;font-size:14px;border-right:1px solid var(--line)}
+.compare-cell:last-child{border-right:none}
+.compare-cell.feature{font-weight:500}
+.compare-cell.yes{color:var(--green)}
+.compare-cell.yes::before{content:'✓ ';font-weight:700}
+.compare-cell.no{color:var(--muted)}
+.compare-cell.no::before{content:'— ';font-weight:700}
+
+/* Process steps */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1.75rem;margin-top:3rem}
+.step-card{position:relative}
+.step-num{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:48px;font-weight:700;color:var(--paper2);line-height:1;margin-bottom:0.75rem;-webkit-text-stroke:1.5px var(--line);color:transparent}
+.step-card h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.step-card p{font-size:14px;color:var(--muted);line-height:1.55}
+
+/* Honesty callout */
+.honesty-block{background:var(--green-dim);border-radius:14px;padding:2.5rem;margin-top:3.5rem;display:grid;grid-template-columns:auto 1fr;gap:1.5rem;align-items:center}
+.honesty-icon{font-size:32px}
+.honesty-block h3{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:22px;font-weight:700;color:var(--green);margin-bottom:6px}
+.honesty-block p{font-size:14px;color:#3d4f42;line-height:1.6;max-width:560px}
+
+/* Pricing */
+.pricing-section{background:var(--ink);color:var(--paper);padding:5rem 0}
+.pricing-section .section-eyebrow{color:#d99572}
+.pricing-section h2{color:var(--paper)}
+.pricing-section .section-sub{color:#b5afa0}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem}
+.price-card{background:#211f1a;border:1px solid #3a372f;border-radius:14px;padding:2rem;position:relative}
+.price-card.popular{border-color:var(--rust)}
+.price-badge{position:absolute;top:-12px;left:2rem;background:var(--rust);color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:12px;text-transform:uppercase;letter-spacing:0.05em}
+.price-name{font-size:14px;color:#b5afa0;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1rem}
+.price-amount{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:44px;font-weight:700;margin-bottom:0.25rem}
+.price-amount span{font-size:16px;font-weight:400;color:#b5afa0}
+.price-desc{font-size:13px;color:#b5afa0;margin-bottom:1.5rem}
+.price-list{list-style:none;font-size:14px;margin-bottom:1.75rem}
+.price-list li{padding:6px 0;display:flex;gap:8px}
+.price-list li::before{content:'✓';color:var(--rust);font-weight:700}
+.price-cta{display:block;text-align:center;padding:12px;border-radius:8px;font-weight:600;font-size:14px;border:1px solid #3a372f;transition:all 0.2s}
+.price-cta.primary{background:var(--rust);border-color:var(--rust);color:#fff}
+.price-cta:hover{opacity:0.9}
+
+/* Final CTA */
+.final-cta{padding:5rem 0;text-align:center}
+.final-cta h2{font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:38px;font-weight:700;letter-spacing:-0.5px;margin-bottom:1rem}
+.final-cta p{font-size:16px;color:var(--muted);max-width:480px;margin:0 auto 2rem}
+
+footer{border-top:1px solid var(--line);padding:2rem 0;text-align:center;font-size:13px;color:var(--muted)}
+
+@media(max-width:860px){
+  .hero h1{font-size:38px}
+  .stats-grid{grid-template-columns:1fr;gap:1.5rem;text-align:center}
+  .steps{grid-template-columns:1fr 1fr;gap:1.5rem}
+  .compare-row{grid-template-columns:1.3fr 1fr 1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .honesty-block{grid-template-columns:1fr;text-align:center}
+  .void-visual{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav>
+    <div class="nav-logo">ResumeFit</div>
+    <a href="resume-builder.html" class="nav-cta">Try it free</a>
+  </nav>
+</div>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-eyebrow">Most resumes are scored by software first</div>
+    <h1>Your resume isn't bad.<br>It's just <em>speaking the wrong language</em> to the software reading it first.</h1>
+    <p class="hero-sub">Most companies use software called an ATS to scan, score, and rank applications before a recruiter ever opens one. If your resume doesn't use the right keywords, it can rank low and go unseen — even when you're qualified. ResumeFit shows you your real score, then rewrites your resume honestly, using only the experience you actually have.</p>
+    <p style="font-size:15px;font-weight:600;color:var(--green);margin-bottom:1.75rem;display:flex;align-items:center;gap:8px"><span style="font-size:18px">↗</span> The goal isn't a higher score — it's more interviews.</p>
+    <div class="hero-ctas">
+      <a href="resume-builder.html" class="btn-primary">Score my resume free →</a>
+      <span class="hero-note">First resume scored <b>free</b>. No account needed.</span>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="void-visual">
+    <div class="void-card silent" style="left:0;top:60px;transform:rotate(-6deg)">
+      <div class="vc-status">No response</div>
+      <div class="vc-line w80"></div><div class="vc-line w60"></div><div class="vc-line w40"></div>
+    </div>
+    <div class="void-card rejected" style="left:90px;top:10px;transform:rotate(3deg);z-index:2">
+      <div class="vc-status">Not a match</div>
+      <div class="vc-line w60"></div><div class="vc-line w80"></div><div class="vc-line w40"></div>
+    </div>
+    <div class="void-card silent" style="left:190px;top:90px;transform:rotate(-2deg)">
+      <div class="vc-status">No response</div>
+      <div class="vc-line w40"></div><div class="vc-line w60"></div><div class="vc-line w80"></div>
+    </div>
+  </div>
+</div>
+
+<section class="section" style="padding-top:1rem;padding-bottom:3rem">
+  <div class="wrap">
+    <div class="section-eyebrow">Something most job seekers don't know</div>
+    <h2>What's actually reading your resume first?</h2>
+    <p class="section-sub">It's not a person. It's software called an <b style="color:var(--ink)">Applicant Tracking System (ATS)</b> — used by most mid-size and large employers to scan every application for keywords and qualifications from the job posting, then rank candidates before a recruiter opens a single resume. If your resume uses different wording than the posting — even with the right experience — it can rank low and sit unseen at the bottom of the pile. That's often the real reason behind silence, not a lack of qualifications.</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="stats-strip">
+    <div class="stats-grid">
+      <div>
+        <div class="stat-num">Most</div>
+        <div class="stat-label">mid-size and large companies now use ATS software to screen applications before human review</div>
+      </div>
+      <div>
+        <div class="stat-num">Keywords</div>
+        <div class="stat-label">matter more than most job seekers realize — exact wording from the posting can change your ranking</div>
+      </div>
+      <div>
+        <div class="stat-num">1 free</div>
+        <div class="stat-label">resume scored and rewritten on us — see your real score first</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-eyebrow">Why this is different</div>
+    <h2>Most tools guess. We show our work.</h2>
+    <p class="section-sub">Other resume scorers give you a number with no explanation. ResumeFit shows the exact keywords found, the ones missing, and never invents experience to fake a better score.</p>
+
+    <div class="compare">
+      <div class="compare-row header">
+        <div class="compare-cell feature">Feature</div>
+        <div class="compare-cell">Typical tools</div>
+        <div class="compare-cell">ResumeFit</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-cell feature">Shows which keywords are missing</div>
+        <div class="compare-cell no">Vague score only</div>
+        <div class="compare-cell yes">Full breakdown</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-cell feature">Rewrites your experience</div>
+        <div class="compare-cell no">Often invents skills</div>
+        <div class="compare-cell yes">Only your real history</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-cell feature">Cover letter included</div>
+        <div class="compare-cell no">Extra paid add-on</div>
+        <div class="compare-cell yes">Included with every resume</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-cell feature">Your data leaves your device</div>
+        <div class="compare-cell no">Stored on their servers</div>
+        <div class="compare-cell yes">Stays on your device</div>
+      </div>
+    </div>
+
+    <div class="honesty-block">
+      <div class="honesty-icon">✓</div>
+      <div>
+        <h3>We will never invent your experience.</h3>
+        <p>Some tools pad your resume with skills you don't have to chase a higher score. That gets you caught in an interview. ResumeFit only reframes what's real — stronger language, better keywords, honest results.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:3.5rem">
+      <div class="section-eyebrow">A fair question</div>
+      <h2 style="font-size:28px">Why not just ask an AI chatbot to do this?</h2>
+      <p class="section-sub" style="margin-bottom:1.5rem">You could. Here's the honest difference.</p>
+      <div class="compare">
+        <div class="compare-row header">
+          <div class="compare-cell feature">What you get</div>
+          <div class="compare-cell">A general AI chatbot</div>
+          <div class="compare-cell">ResumeFit</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell feature">ATS score</div>
+          <div class="compare-cell no">Vague opinion, no real scoring</div>
+          <div class="compare-cell yes">Structured score across 4 factors</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell feature">Won't invent experience</div>
+          <div class="compare-cell no">Often does, unless you catch it</div>
+          <div class="compare-cell yes">Built-in guardrails, every time</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell feature">Ready-to-send files</div>
+          <div class="compare-cell no">Raw text you format yourself</div>
+          <div class="compare-cell yes">Formatted PDF & Word, two templates</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell feature">Built for job hunting</div>
+          <div class="compare-cell no">A generic tool you have to steer</div>
+          <div class="compare-cell yes">One workflow, every application</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-eyebrow">How it works</div>
+    <h2>From resume to ready in four steps</h2>
+
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3>Add your resume</h3>
+        <p>Upload a PDF or fill in your details. Nothing leaves your device.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3>Paste the job</h3>
+        <p>Drop in the job posting you're applying to — any role, any industry.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3>See your real score</h3>
+        <p>Get a keyword-matched ATS score with exactly what's missing.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <h3>Download & apply</h3>
+        <p>Get an optimized resume and tailored cover letter, ready to send.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing-section">
+  <div class="wrap">
+    <div class="section-eyebrow">Simple pricing</div>
+    <h2>Pay only when you're ready to send it</h2>
+    <p class="section-sub">Your first resume is free. After that, buy credits — no subscriptions, no surprises.</p>
+
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-name">First resume</div>
+        <div class="price-amount">Free</div>
+        <div class="price-desc">Try it before you pay anything</div>
+        <ul class="price-list">
+          <li>Full ATS score breakdown</li>
+          <li>Optimized resume + cover letter</li>
+          <li>PDF & Word download</li>
+        </ul>
+        <a href="resume-builder.html" class="price-cta">Start free</a>
+      </div>
+      <div class="price-card popular">
+        <div class="price-badge">Best value</div>
+        <div class="price-name">10 Credits</div>
+        <div class="price-amount">$15<span> CAD</span></div>
+        <div class="price-desc">$1.50 per resume — for active job hunts</div>
+        <ul class="price-list">
+          <li>10 full resume optimizations</li>
+          <li>10 tailored cover letters</li>
+          <li>Use anytime, no expiry</li>
+        </ul>
+        <a href="resume-builder.html" class="price-cta primary">Get 10 credits</a>
+      </div>
+      <div class="price-card">
+        <div class="price-name">5 Credits</div>
+        <div class="price-amount">$9<span> CAD</span></div>
+        <div class="price-desc">$1.80 per resume — for a few applications</div>
+        <ul class="price-list">
+          <li>5 full resume optimizations</li>
+          <li>5 tailored cover letters</li>
+          <li>Use anytime, no expiry</li>
+        </ul>
+        <a href="resume-builder.html" class="price-cta">Get 5 credits</a>
+      </div>
+    </div>
+    <p style="font-size:12px;color:#8a8473;text-align:center;margin-top:1.5rem">Credits are saved on the device and browser you purchase from — use the same one to access them later.</p>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="wrap">
+    <h2 class="serif">Stop wondering why the keywords don't line up.</h2>
+    <p>See exactly how your resume scores against the job — for free.</p>
+    <a href="resume-builder.html" class="btn-primary">Score my resume free →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">© 2026 ResumeFit. Built for people tired of shouting into the void.</div>
+</footer>
+
+</body>
+</html>
