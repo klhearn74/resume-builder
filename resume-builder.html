@@ -1049,7 +1049,7 @@ Return ONLY valid JSON, no markdown:
 
 ${resumeSourceText}\n\nJOB DESCRIPTION:\n${v('jd')}`,
       "You are an expert resume writer. Never fabricate skills or experience. Never pull language from the job description and present it as the candidate's own past experience. Avoid generic AI-sounding corporate buzzwords entirely — write in plain, specific, human language, since AI-sounding resumes get automatically rejected by many employers. Skills must be copied exactly from the original. Return only valid JSON.",
-      1600,null,'claude-sonnet-4-6'
+      3000,null,'claude-sonnet-4-6'
     );
     clearInterval(t);
     let clean=raw.replace(/```json|```/g,'').trim();
