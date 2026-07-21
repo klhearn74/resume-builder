@@ -555,6 +555,8 @@ textarea{min-height:100px}
 </div>
 <script>
 const PROXY="https://klhearn74--d5ae17d664fe11f1a8a21607ee4eb77e.web.val.run";
+  const REQUEST_KEY="rf_7k2mQ9xW4pL8vN3jY6tB1cH5sD0aZeR";
+  function proxyHeaders(){return {'Content-Type':'application/json','X-ResumeFit-Key':REQUEST_KEY};}
 
 // ── Analytics helper ─────────────────────────────────────────────
 // Skips firing events in test mode (?testmode=true) so batch-testing and
@@ -590,7 +592,7 @@ async function initFreeCredit(){
   if(window.TEST_MODE) return;
   if(localStorage.getItem('resumefit_credits')!==null) return; // already has a real value, nothing to do
   try{
-    const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'claim_free_credit'})});
+    const res=await fetch(PROXY,{method:'POST',headers:proxyHeaders(),body:JSON.stringify({action:'claim_free_credit'})});
     const data=await res.json();
     setCredits(data.granted?1:0);
   }catch(e){
@@ -673,7 +675,7 @@ async function redeemCodeStandalone(){
   if(!code){status.style.color='var(--red)';status.textContent='Please enter a code.';return;}
   status.style.color='var(--text2)';status.textContent='Checking code...';
   try{
-    const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'redeem_code',code})});
+    const res=await fetch(PROXY,{method:'POST',headers:proxyHeaders(),body:JSON.stringify({action:'redeem_code',code})});
     const data=await res.json();
     if(data.success){
       setCredits(getCredits()+data.credits);
@@ -714,7 +716,7 @@ async function redeemCode(){
   if(!code){status.style.color='var(--red)';status.textContent='Please enter a code.';return;}
   status.style.color='var(--text2)';status.textContent='Checking code...';
   try{
-    const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'redeem_code',code})});
+    const res=await fetch(PROXY,{method:'POST',headers:proxyHeaders(),body:JSON.stringify({action:'redeem_code',code})});
     const data=await res.json();
     if(data.success){
       setCredits(getCredits()+data.credits);
@@ -979,7 +981,7 @@ async function callClaudeRaw(prompt,system,maxTokens=800,pdfB64=null,model='clau
   const content=pdfB64?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfB64}},{type:'text',text:prompt}]:prompt;
   const body={model,max_tokens:maxTokens,temperature:0,messages:[{role:'user',content}]};
   if(system) body.system=system;
-  const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const res=await fetch(PROXY,{method:'POST',headers:proxyHeaders(),body:JSON.stringify(body)});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
   return {text:data.content.map(b=>b.text||'').join(''),stopReason:data.stop_reason};
