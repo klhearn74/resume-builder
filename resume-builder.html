@@ -199,6 +199,10 @@ textarea{min-height:100px}
 .paywall-option .po-desc{font-size:12px;color:var(--text2)}
 .paywall-option .po-per{font-size:11px;color:var(--accent);margin-top:4px}
 .paywall-divider{font-size:12px;color:var(--text3);margin:1rem 0}
+  .feedback-cta{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-top:1.5rem;text-align:center}
+.feedback-cta h4{font-size:14.5px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.feedback-cta p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:1rem;max-width:440px;margin-left:auto;margin-right:auto}
+.feedback-cta a.btn{display:inline-block;text-decoration:none}
 
 /* Code redemption */
 .code-row{display:flex;gap:8px;max-width:320px;margin:0 auto}
@@ -561,7 +565,11 @@ textarea{min-height:100px}
       </div>
     </div>
   </div>
-
+<div class="feedback-cta">
+            <h4>Got 2 minutes?</h4>
+            <p>We're a tiny, honest resume tool trying to improve — and we'd genuinely like to know how this worked for you. Answer a few quick questions about your experience, and if you share real feedback, we'll follow up with a free credit code as a thank-you.</p>
+            <a class="btn btn-primary" href="https://forms.gle/SiQapMMvFC8hMbfu9" target="_blank" onclick="gaEvent('feedback_form_clicked',{})">Share feedback →</a>
+          </div>
 </div>
 <script>
 const PROXY="https://klhearn74--d5ae17d664fe11f1a8a21607ee4eb77e.web.val.run";
